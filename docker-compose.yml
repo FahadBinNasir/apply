@@ -9,6 +9,7 @@ services:
       - WAHA_ZIP_LOGS=true
       - WAHA_PRINT_QR=true
       - WAHA_DASHBOARD_ENABLED=false
+      - WAHA_API_KEY_EXCLUDE_PATH=/health,/ping
       - WHATSAPP_API_KEY=${WAHA_API_KEY:-dev_waha_api_key_12345}
       - WHATSAPP_WEBHOOK_URL=http://app:8080/api/intake/webhook
       - WHATSAPP_WEBHOOK_EVENTS=message
@@ -22,7 +23,7 @@ services:
         limits:
           memory: 2500M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/server/version"]
+      test: ["CMD-SHELL", "curl -f -H \"X-Api-Key: $WHATSAPP_API_KEY\" http://localhost:3000/api/server/version || curl -f http://localhost:3000/ping || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
