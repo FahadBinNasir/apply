@@ -160,6 +160,19 @@ def test_fastapi_endpoints():
         assert res.status_code == 200
         assert res.json()["status"] == "healthy"
 
-        # 2. Login redirect
-        res = client.get("/")
-        assert res.status_code == 303 or res.status_code == 200
+        # 2. Login redirect without cookie
+        res = client.get("/", follow_redirects=False)
+        assert res.status_code == 303
+        assert res.headers["location"] == "/login"
+
+        # 3. Create valid session cookie
+        secret = os.getenv("SESSION_SECRET", "dev_session_secret_change_in_production")
+        token = create_session_token(secret)
+        client.cookies.set("session_token", token)
+
+        # 4. Verify all HTML pages render
+        for path in ["/", "/sent", "/skipped", "/opportunities", "/whatsapp", "/settings"]:
+            html_res = client.get(path, headers={"Accept": "text/html,application/xhtml+xml"})
+            assert html_res.status_code == 200, f"Path {path} returned {html_res.status_code}"
+            assert "text/html" in html_res.headers.get("content-type", "")
+            assert "<!DOCTYPE html>" in html_res.text or "<html" in html_res.text

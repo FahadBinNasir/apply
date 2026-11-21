@@ -51,6 +51,7 @@ from contracts.models import (
     ProfileProject,
     ProfileSkills,
     ProfileStatus,
+    Settings,
 )
 
 
@@ -180,6 +181,16 @@ async def lifespan(app: FastAPI):
     scheduler.start()
 
     # Store on app.state
+    settings = Settings(
+        send_enabled=os.getenv("SEND_ENABLED", "false").lower() == "true",
+        daily_send_cap=int(os.getenv("DAILY_SEND_CAP", "25")),
+        min_gap_seconds=int(os.getenv("MIN_GAP_SECONDS", "60")),
+        gemini_model_fast=os.getenv("GEMINI_MODEL_FAST", "gemini-2.5-flash"),
+        gemini_model_smart=os.getenv("GEMINI_MODEL_SMART", "gemini-2.5-flash"),
+        groq_fallback_enabled=bool(os.getenv("GROQ_API_KEY")),
+        now_override=os.getenv("NOW_OVERRIDE"),
+    )
+    app.state.settings = settings
     app.state.job_repo = job_repo
     app.state.inbox_repo = inbox_repo
     app.state.queue = queue

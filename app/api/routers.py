@@ -34,9 +34,19 @@ from contracts.models import (
     Status,
     Tier,
 )
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
 lockout_manager = LockoutManager()
+templates_dir = Path("app/web/templates")
+templates = Jinja2Templates(directory=str(templates_dir))
+
+
+def should_render_html(request: Request) -> bool:
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept and "text/html" not in accept:
+        return False
+    return True
 
 
 def get_session_secret() -> str:
@@ -148,15 +158,8 @@ async def inbox_dashboard(
     jobs = await job_repo.list_cards(limit=200)
     vm = build_inbox_viewmodel(jobs, active_tab=tier_enum)
 
-    # Return HTML if browser, or JSON if requested
-    if "text/html" in request.headers.get("accept", ""):
-        # Check if templates exist
-        templates_dir = Path("app/web/templates")
-        if (templates_dir / "index.html").exists():
-            from fastapi.templating import Jinja2Templates
-            templates = Jinja2Templates(directory=str(templates_dir))
-            return templates.TemplateResponse(request=request, name="index.html", context={"vm": vm})
-        return HTMLResponse(f"<h1>Inbox Dashboard</h1><pre>{vm}</pre>")
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="index.html", context={"vm": vm})
     return vm
 
 
@@ -180,13 +183,8 @@ async def job_detail(
     )
     vm = build_job_detail_viewmodel(job, draft=draft, cv=cv)
 
-    if "text/html" in request.headers.get("accept", ""):
-        templates_dir = Path("app/web/templates")
-        if (templates_dir / "job_detail.html").exists():
-            from fastapi.templating import Jinja2Templates
-            templates = Jinja2Templates(directory=str(templates_dir))
-            return templates.TemplateResponse(request=request, name="job_detail.html", context={"vm": vm})
-        return HTMLResponse(f"<h1>Job Detail</h1><pre>{vm}</pre>")
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="job_detail.html", context={"vm": vm})
     return vm
 
 
@@ -239,6 +237,8 @@ async def sent_log(
     auth: str = Depends(require_auth),
 ):
     vm = build_sent_log_viewmodel([], daily_cap=25)
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="sent.html", context={"vm": vm})
     return vm
 
 
@@ -260,7 +260,10 @@ async def skipped_list(
 ):
     job_repo = request.app.state.job_repo
     jobs = await job_repo.list_cards(tier=Tier.SKIPPED, limit=200)
-    return build_skipped_viewmodel(jobs)
+    vm = build_skipped_viewmodel(jobs)
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="skipped.html", context={"vm": vm})
+    return vm
 
 
 @router.get("/opportunities")
@@ -268,7 +271,11 @@ async def opportunities(
     request: Request,
     auth: str = Depends(require_auth),
 ):
-    return {"total_opportunities": 0, "opportunities": []}
+    from app.viewmodels.builders import build_opportunities_viewmodel
+    vm = build_opportunities_viewmodel([])
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="opportunities.html", context={"vm": vm})
+    return vm
 
 
 @router.get("/whatsapp")
@@ -279,12 +286,17 @@ async def whatsapp_status_page(
     intake = request.app.state.intake_source
     status = intake.get_status()
     qr = intake.get_qr()
-    return {
+    from app.viewmodels.builders import build_whatsapp_viewmodel
+    vm = build_whatsapp_viewmodel({
         "connected": status.get("connected", False),
         "engine": status.get("engine", "WAHA Core (WEBJS)"),
         "status": status.get("status"),
         "qr_code": qr,
-    }
+        "phone": status.get("phone"),
+    }, [])
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="whatsapp.html", context={"vm": vm})
+    return vm
 
 
 @router.get("/settings")
@@ -293,10 +305,16 @@ async def settings_page(
     auth: str = Depends(require_auth),
 ):
     profile = request.app.state.profile
-    return {
-        "matching": profile.matching.model_dump(),
-        "skills": profile.skills.model_dump(),
+    settings = getattr(request.app.state, "settings", Settings())
+    from app.viewmodels.builders import build_settings_viewmodel
+    gmail_status = {
+        "authenticated": bool(os.getenv("GMAIL_REFRESH_TOKEN_ENC")),
+        "email": profile.email,
     }
+    vm = build_settings_viewmodel(settings, gmail_status, profile)
+    if should_render_html(request):
+        return templates.TemplateResponse(request=request, name="settings.html", context={"vm": vm})
+    return vm
 
 
 # -----------------------------------------------------------------------------
