@@ -1,6 +1,7 @@
 services:
   whatsapp:
-    image: devlikeapro/waha:latest
+    # Use devlikeapro/waha:arm on ARM64 (e.g. Oracle Cloud A1) or devlikeapro/waha:latest on AMD64
+    image: ${WAHA_IMAGE:-devlikeapro/waha:arm}
     container_name: apply_whatsapp
     restart: unless-stopped
     environment:
