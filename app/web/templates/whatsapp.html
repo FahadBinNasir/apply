@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}WhatsApp Status - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:var(--space-4);">
+  <h1 style="font-size:1.5rem;font-weight:700;">WhatsApp Listener Status</h1>
+  <p style="color:var(--text-secondary);font-size:0.875rem;">
+    Zero-ban hygiene: This WhatsApp instance only listens and never sends, replies, or joins groups.
+  </p>
+</div>
+
+<div class="split-pane">
+  <!-- Connection State & QR -->
+  <div>
+    <div class="job-card" style="margin-bottom:var(--space-4);">
+      <h2 style="font-size:1rem;margin-bottom:var(--space-2);">Connection & Session</h2>
+      <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{% if vm.connected %}#10b981{% else %}#ef4444{% endif %};"></span>
+        <b>Status:</b> {% if vm.connected %}Connected & Listening{% else %}Disconnected / QR Required{% endif %}
+      </div>
+
+      {% if not vm.connected and vm.qr_code %}
+      <div style="background:#fff;padding:var(--space-4);border-radius:var(--radius-md);text-align:center;margin:var(--space-3) 0;">
+        <img src="{{ vm.qr_code }}" alt="Scan WhatsApp QR" style="max-width:240px;width:100%;height:auto;"/>
+        <p style="color:#000;font-size:0.8rem;margin-top:var(--space-2);">
+          Open WhatsApp on your secondary phone > Linked Devices > Link a Device > Scan this QR.
+        </p>
+      </div>
+      {% endif %}
+
+      <div style="font-size:0.85rem;color:var(--text-secondary);">
+        <b>Intake Engine:</b> {{ vm.engine }}<br/>
+        <b>Connected Phone:</b> {{ vm.phone or 'Not linked' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Watched Chats & Simulator -->
+  <div>
+    <div class="job-card" style="margin-bottom:var(--space-4);">
+      <h2 style="font-size:1rem;margin-bottom:var(--space-2);">Test Simulator</h2>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:var(--space-3);">
+        Simulate an incoming WhatsApp post to verify parsing, tailoring, and draft generation without scanning WhatsApp.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Simulated WhatsApp Post Text</label>
+        <textarea id="sim-text" class="form-textarea" rows="4">We're Hiring – DevOps Engineer!
+Paysys Labs is looking for a DevOps Engineer in Karachi (On-site). 0-1 Years experience.
+Send updated CV to hiring@paysyslabs.com with subject line "DevOps Engineer – Application".</textarea>
+      </div>
+
+      <button onclick="runSimulation()" class="btn btn-primary" style="width:100%;">
+        Run Simulation Test
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function runSimulation() {
+  const text = document.getElementById("sim-text").value;
+  const btn = event.target;
+  btn.innerText = "Simulating...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/dev/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text, chat_name: "Test Alumni Group" })
+    });
+    const data = await res.json();
+    alert(`Simulation processed! ${data.jobs_created.length} job(s) created.`);
+    window.location.href = "/";
+  } catch (err) {
+    alert("Simulation failed: " + err.message);
+  } finally {
+    btn.innerText = "Run Simulation Test";
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    container_name: apply_app_dev
+    environment:
+      - APP_ENV=development
+      - USE_FAKES=true
+      - DASHBOARD_PASSWORD_HASH=
+      - SESSION_SECRET=dev_session_secret_for_local_testing_only
+      - ENABLE_SIMULATOR=true
+    volumes:
+      - .:/app
+      - app_data_dev:/app_data
+    ports:
+      - "8080:8080"
+
+volumes:
+  app_data_dev:

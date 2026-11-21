@@ -105,6 +105,22 @@ class FakeExtractor:
             )
             return ExtractionResult(is_job=True, post_type=PostType.INTERNSHIP, roles=[role], confidence=0.95)
 
+        # F4 fixture check (Pentaloop Lahore)
+        if "pentaloop" in lower or "johar town, lahore" in lower:
+            role = ExtractedRole(
+                title="ASE - iOS Developer",
+                company="Pentaloop",
+                field="mobile (Flutter/iOS)",
+                location_text="Johar Town, Lahore",
+                work_mode=WorkMode.ONSITE,
+                city="Lahore",
+                experience_min_years=0.0,
+                apply_method=ApplyMethod.EMAIL,
+                apply_email="hr@pentaloop.com",
+                fresh_grad_ok=True,
+            )
+            return ExtractionResult(is_job=True, post_type=PostType.JOB, roles=[role], confidence=0.95)
+
         # Generic default extraction
         role = ExtractedRole(
             title="Software Trainee",

@@ -1,0 +1,8 @@
+NOW_OVERRIDE:
+  description: "ISO datetime string to override system clock for deterministic testing (e.g. 2026-11-21T00:00:00)"
+  default: ""
+  required: false
+REPEAT_GUARD_DAYS:
+  description: "Number of days before allowing re-application to the same company or email"
+  default: "14"
+  required: false

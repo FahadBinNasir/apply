@@ -1,0 +1,16 @@
+WAHA_BASE_URL:
+  description: "Internal URL of WAHA service container"
+  default: "http://whatsapp:3000"
+  required: false
+WAHA_API_KEY:
+  description: "API key securing WAHA internal endpoints"
+  default: ""
+  required: true
+WEBHOOK_SECRET:
+  description: "Shared secret for HMAC verification between whatsapp and app containers"
+  default: ""
+  required: true
+WATCHED_CHATS:
+  description: "Comma-separated allow-list of chat IDs to process (empty = all non-noise chats)"
+  default: ""
+  required: false

@@ -1,0 +1,12 @@
+DASHBOARD_PASSWORD_HASH:
+  description: "Argon2 or bcrypt hash of the dashboard access password"
+  default: ""
+  required: true
+SESSION_SECRET:
+  description: "Cryptographic secret used to sign session cookies"
+  default: ""
+  required: true
+ENABLE_SIMULATOR:
+  description: "Enable developer simulation endpoint POST /api/dev/simulate in production"
+  default: "false"
+  required: false

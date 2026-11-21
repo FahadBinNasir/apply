@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);">
+  <div>
+    <h1 style="font-size:1.5rem;font-weight:700;">Pending Applications</h1>
+    <p style="color:var(--text-secondary);font-size:0.875rem;">
+      {{ vm.today_new_count }} new today · {{ vm.deadline_soon_count }} with approaching deadlines
+    </p>
+  </div>
+</div>
+
+<!-- Segmented Control Tabs -->
+<div class="tabs">
+  <a href="/?tab=STRONG" class="tab-btn {% if vm.active_tab == 'STRONG' %}active{% endif %}">
+    Strong <span class="badge badge-strong">{{ vm.counts.strong }}</span>
+  </a>
+  <a href="/?tab=STRETCH" class="tab-btn {% if vm.active_tab == 'STRETCH' %}active{% endif %}">
+    Stretch <span class="badge badge-stretch">{{ vm.counts.stretch }}</span>
+  </a>
+  <a href="/?tab=MANUAL" class="tab-btn {% if vm.active_tab == 'MANUAL' %}active{% endif %}">
+    Manual <span class="badge badge-manual">{{ vm.counts.manual }}</span>
+  </a>
+  <a href="/?tab=WALKIN" class="tab-btn {% if vm.active_tab == 'WALKIN' %}active{% endif %}">
+    Walk-in <span class="badge badge-walkin">{{ vm.counts.walkin }}</span>
+  </a>
+</div>
+
+<!-- Cards Grid -->
+{% if vm.jobs %}
+<div class="cards-grid">
+  {% for job in vm.jobs %}
+  <div class="job-card" id="card-{{ job.id }}">
+    <div class="job-card-header">
+      <div>
+        <h2 class="job-title">{{ job.title }}</h2>
+        <div class="company-name">{{ job.company }}</div>
+      </div>
+      <div>
+        <span class="badge badge-{{ job.tier.lower() }}">{{ job.tier }}</span>
+      </div>
+    </div>
+
+    <div class="chips-row">
+      <span class="chip">📍 {{ job.location_text }}</span>
+      <span class="chip">📩 {{ job.apply_method }}</span>
+      {% if job.deadline %}
+      <span class="chip" style="color:#f59e0b;font-weight:600;">⏰ Due: {{ job.deadline }}</span>
+      {% endif %}
+      <span class="chip" style="font-weight:600;">⭐ {{ job.score|round }}% Fit</span>
+    </div>
+
+    {% if job.matches %}
+    <div class="matches-list">
+      <b>Matched:</b> {{ job.matches|join(" · ") }}
+    </div>
+    {% endif %}
+
+    <div class="actions-row">
+      <a href="/jobs/{{ job.id }}" class="btn btn-primary">Review & Send</a>
+      <button onclick="rejectJob('{{ job.id }}')" class="btn btn-secondary">Reject</button>
+      <button onclick="snoozeJob('{{ job.id }}')" class="btn btn-secondary">Snooze 24h</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-box">
+  <h3 style="font-size:1.1rem;margin-bottom:var(--space-2);color:var(--text-primary);">
+    {{ vm.empty_state.title }}
+  </h3>
+  <p>{{ vm.empty_state.description }}</p>
+</div>
+{% endif %}
+
+<script>
+async function rejectJob(jobId) {
+  if (!confirm("Reject this job application?")) return;
+  const res = await fetch(`/api/jobs/${jobId}/reject`, { method: "POST" });
+  if (res.ok) document.getElementById(`card-${jobId}`).remove();
+}
+async function snoozeJob(jobId) {
+  const res = await fetch(`/api/jobs/${jobId}/snooze`, { method: "POST" });
+  if (res.ok) document.getElementById(`card-${jobId}`).remove();
+}
+</script>
+{% endblock %}

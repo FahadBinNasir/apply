@@ -1,0 +1,20 @@
+GEMINI_API_KEY:
+  description: "Google AI Studio API key (free tier)"
+  default: ""
+  required: true
+GEMINI_MODEL_FAST:
+  description: "Gemini model name for fast extraction and vision"
+  default: "gemini-2.5-flash"
+  required: false
+GEMINI_MODEL_SMART:
+  description: "Gemini model name for deep reasoning"
+  default: "gemini-2.5-flash"
+  required: false
+GROQ_API_KEY:
+  description: "Groq Console API key (free fallback)"
+  default: ""
+  required: false
+GROQ_MODEL:
+  description: "Groq fallback model name"
+  default: "llama-3.3-70b-versatile"
+  required: false

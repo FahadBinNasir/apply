@@ -1,0 +1,224 @@
+from __future__ import annotations
+import os
+import re
+from datetime import datetime, timezone
+from typing import List, Optional, Tuple
+from dateutil import parser as date_parser
+
+from contracts.models import ApplyMethod, ExtractedRole, Profile, Tier, WorkMode
+from contracts.protocols import RulesEngine
+
+
+class ProductionRulesEngine:
+    """Pure deterministic decision engine implementing matching rules per Part D3."""
+
+    def evaluate(
+        self,
+        role: ExtractedRole,
+        profile: Profile,
+        now_override: Optional[datetime] = None,
+    ) -> Tuple[Tier, List[str], float, List[str], List[str]]:
+        reasons: List[str] = []
+        matches: List[str] = []
+        gaps: List[str] = []
+        score: float = 50.0
+
+        # Clock resolution
+        now = now_override
+        if not now:
+            env_override = os.getenv("NOW_OVERRIDE")
+            if env_override:
+                try:
+                    now = datetime.fromisoformat(env_override)
+                except Exception:
+                    pass
+        if not now:
+            now = datetime.now(timezone.utc)
+
+        # Ensure tz-naive or tz-aware comparison consistency
+        if now.tzinfo is not None:
+            now = now.replace(tzinfo=None)
+
+        # -------------------------------------------------------------
+        # 1. DEADLINE CHECK
+        # -------------------------------------------------------------
+        if role.deadline:
+            try:
+                # Handle dates like "2026-11-20", "20 Nov 2026", "2026-11-16"
+                dl = date_parser.parse(role.deadline)
+                if dl.tzinfo is not None:
+                    dl = dl.replace(tzinfo=None)
+                if dl < now:
+                    return Tier.SKIPPED, [f"Application deadline ({role.deadline}) has expired"], 0.0, [], ["Expired deadline"]
+                elif (dl - now).days <= 3:
+                    reasons.append(f"Deadline approaching: {role.deadline}")
+                    score += 5.0
+            except Exception:
+                pass
+
+        # -------------------------------------------------------------
+        # 2. AVOID FIELDS CHECK (Hard filter)
+        # -------------------------------------------------------------
+        field_text = f"{role.field} {role.title} {role.notes or ''}".lower()
+        for avoid in profile.matching.avoid_fields:
+            # Check keywords
+            avoid_tokens = [tok.strip().lower() for tok in avoid.split(",") if tok.strip()]
+            for tok in avoid_tokens:
+                pattern = r"\b" + re.escape(tok) + r"\b"
+                if re.search(pattern, field_text):
+                    # Check exception: tech roles in non-tech companies
+                    return Tier.SKIPPED, [f"Field or role matches avoid list: '{tok}'"], 0.0, [], [f"Avoid category: {avoid}"]
+
+        # -------------------------------------------------------------
+        # 3. EDUCATION GATES (Hard filter)
+        # -------------------------------------------------------------
+        edu_text = f"{role.education or ''} {role.title} {role.notes or ''}".lower()
+        if re.search(r"\b(ms|m\.?s|mphil|phd|master'?s?)\s+(required|in\s+cs|in\s+se)\b", edu_text):
+            return Tier.SKIPPED, ["Requires MS or higher degree (current student in 7th semester)"], 0.0, [], ["Requires MS degree"]
+        if re.search(r"\b(acca|ca\s+inter|icma|mbbs)\b", edu_text):
+            return Tier.SKIPPED, ["Requires specialized non-engineering certification (ACCA/CA/MBBS)"], 0.0, [], ["Non-engineering qualification"]
+
+        # -------------------------------------------------------------
+        # 4. LOCATION (Hard filter)
+        # -------------------------------------------------------------
+        loc_str = f"{role.location_text} {role.city}".lower()
+        is_remote = role.work_mode == WorkMode.REMOTE or "remote" in loc_str
+        is_karachi = "karachi" in loc_str or "shahra-e-faisal" in loc_str
+
+        # Reject explicitly non-Karachi onsite/hybrid
+        if not is_remote and ("lahore" in loc_str or "islamabad" in loc_str or "rawalpindi" in loc_str or "faisalabad" in loc_str):
+            loc_label = "Lahore" if "lahore" in loc_str else "Islamabad/Rawalpindi"
+            return Tier.SKIPPED, [f"{loc_label} onsite/hybrid outside target location (Karachi only)"], 0.0, [], [f"Non-Karachi onsite: {loc_label}"]
+
+        if is_karachi:
+            matches.append("Location: Karachi on-site / hybrid")
+            score += 15.0
+        elif is_remote:
+            matches.append("Location: Remote")
+            score += 10.0
+        else:
+            # Unknown location -> STRETCH flag
+            gaps.append("Location unknown or unspecified")
+
+        # -------------------------------------------------------------
+        # 5. NIGHT SHIFT (Hard filter if profile rejects)
+        # -------------------------------------------------------------
+        if role.night_shift and not profile.personal.accepts_night_shift:
+            return Tier.SKIPPED, ["Requires night shift (profile does not accept night shift)"], 0.0, [], ["Night shift"]
+
+        # -------------------------------------------------------------
+        # 6. GENDER REQUIREMENTS
+        # -------------------------------------------------------------
+        gender_req = role.gender_requirement.lower()
+        profile_gender = (profile.personal.gender or "unknown").lower()
+        has_gender_warning = False
+
+        if "female" in gender_req:
+            if profile_gender == "male":
+                return Tier.SKIPPED, ["Position is female-only"], 0.0, [], ["Gender requirement: female only"]
+            elif profile_gender != "female":
+                has_gender_warning = True
+                reasons.append("Flag: Position specifies female-only or female-preferred")
+                gaps.append("Gender requirement: female candidates preferred/required")
+
+        # -------------------------------------------------------------
+        # 7. EXPERIENCE LEVEL (Soft filter / Stretch / Skip)
+        # -------------------------------------------------------------
+        is_fresh_friendly = role.fresh_grad_ok or any(
+            kw in f"{role.title} {role.notes or ''}".lower()
+            for kw in ["fresh", "trainee", "mto", "intern", "junior", "0-1", "0–1", "associate"]
+        )
+
+        min_exp = role.experience_min_years or 0.0
+        max_exp = role.experience_max_years or min_exp
+
+        if min_exp > profile.matching.experience.skip_above_years:
+            return Tier.SKIPPED, [f"Experience required ({min_exp} yrs) exceeds maximum limit ({profile.matching.experience.skip_above_years} yrs)"], 0.0, [], [f"High experience requirement: {min_exp} yrs"]
+
+        is_stretch_exp = False
+        if min_exp > profile.matching.experience.comfortable_max_years:
+            is_stretch_exp = True
+            reasons.append(f"Experience required ({min_exp}-{max_exp} yrs) is in stretch range")
+            gaps.append(f"Experience gap: {min_exp} yrs requested")
+            score -= 10.0
+        elif is_fresh_friendly:
+            matches.append("Fresh graduate / student friendly level")
+            score += 15.0
+
+        # -------------------------------------------------------------
+        # 8. FIELD MATCHING (Target fields vs Stretch)
+        # -------------------------------------------------------------
+        is_target_field = False
+        is_stretch_field = False
+        role_field_lower = role.field.lower()
+
+        # Check stretch fields: IT infrastructure / storage / networking
+        if any(s in role_field_lower for s in ["infrastructure", "storage", "compute", "networking", "data center"]):
+            is_stretch_field = True
+            reasons.append("Field is IT infrastructure / storage & compute (stretch category)")
+            score += 5.0
+        else:
+            for tf in profile.matching.target_fields:
+                tf_tokens = [t.strip().lower() for t in tf.replace("/", " ").replace("-", " ").split() if len(t.strip()) > 1]
+                if any(tok in role_field_lower or tok in role.title.lower() for tok in tf_tokens):
+                    is_target_field = True
+                    matches.append(f"Target field match: {tf}")
+                    score += 20.0
+                    break
+
+        # Check skill overlap
+        profile_skills_flat = [
+            s.lower()
+            for category in [
+                profile.skills.languages,
+                profile.skills.ai_ml,
+                profile.skills.web_backend,
+                profile.skills.mobile_tools,
+                profile.skills.concepts,
+            ]
+            for s in category
+        ]
+
+        matched_skills = []
+        for s in role.skills:
+            if any(ps in s.lower() or s.lower() in ps for ps in profile_skills_flat):
+                matched_skills.append(s)
+
+        if matched_skills:
+            matches.append(f"Skills matched: {', '.join(matched_skills[:4])}")
+            score += min(20.0, len(matched_skills) * 4.0)
+
+        # -------------------------------------------------------------
+        # 9. SPECIAL TIER ASSIGNMENT
+        # -------------------------------------------------------------
+        # Walk-in check
+        if role.apply_method == ApplyMethod.WALKIN or role.walkin:
+            reasons.append("Walk-in interview opportunity")
+            return Tier.WALKIN, reasons, score, matches, gaps
+
+        # Manual apply check (link / LinkedIn / form / no email)
+        if role.apply_method in [ApplyMethod.LINK, ApplyMethod.LINKEDIN, ApplyMethod.FORM] or not role.apply_email:
+            if role.apply_method == ApplyMethod.LINKEDIN:
+                reasons.append("LinkedIn apply link requires manual browser action")
+            elif role.apply_method == ApplyMethod.WHATSAPP:
+                reasons.append("WhatsApp direct application")
+            else:
+                reasons.append("External portal or link-only application")
+            return Tier.MANUAL, reasons, score, matches, gaps
+
+        # Stretch conditions
+        if is_stretch_field or is_stretch_exp or has_gender_warning or (not is_karachi and not is_remote):
+            if is_stretch_field:
+                reasons.append("Categorized as STRETCH due to infrastructure/support field")
+            if is_stretch_exp:
+                reasons.append("Categorized as STRETCH due to 1-3 years experience requirement")
+            return Tier.STRETCH, reasons, score, matches, gaps
+
+        if score >= 70.0:
+            reasons.append("Strong technical, location, and experience fit")
+            return Tier.STRONG, reasons, score, matches, gaps
+        elif score >= 45.0:
+            reasons.append("Moderate alignment, classified as STRETCH")
+            return Tier.STRETCH, reasons, score, matches, gaps
+        else:
+            return Tier.SKIPPED, ["Low overall score/relevance"], score, matches, ["Low relevance score"]

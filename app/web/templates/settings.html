@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:var(--space-4);">
+  <h1 style="font-size:1.5rem;font-weight:700;">Settings & Profile Rules</h1>
+  <p style="color:var(--text-secondary);font-size:0.875rem;">
+    Matching thresholds, send limits, Gmail authorization, and profile bounds.
+  </p>
+</div>
+
+<div class="split-pane">
+  <div>
+    <!-- System Controls Card -->
+    <div class="job-card" style="margin-bottom:var(--space-4);">
+      <h2 style="font-size:1rem;margin-bottom:var(--space-3);">Sending Safety & Limits</h2>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:var(--space-2);">
+        <b>Dry-Run Mode:</b> <span style="color:#f59e0b;">ACTIVE (SEND_ENABLED=false)</span><br/>
+        <span style="font-size:0.75rem;color:var(--text-muted);">
+          When SEND_ENABLED is false, approving an application simulates dispatch without contacting external recipients.
+        </span>
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:var(--space-2);">
+        <b>Daily Send Cap:</b> 25 emails/day<br/>
+        <b>Minimum Gap Between Sends:</b> 60 seconds
+      </div>
+    </div>
+
+    <!-- Gmail API Card -->
+    <div class="job-card">
+      <h2 style="font-size:1rem;margin-bottom:var(--space-3);">Gmail API Integration</h2>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:var(--space-2);">
+        Authorized via Google Cloud OAuth (Scope: <code>gmail.send</code>).
+      </p>
+      <div style="font-size:0.8rem;background:var(--bg-elevated);padding:var(--space-3);border-radius:var(--radius-md);margin-bottom:var(--space-3);">
+        <b>Important Notice:</b> Ensure your Google Cloud OAuth Consent Screen is published or set to "In production" (for personal testing), otherwise user refresh tokens expire after 7 days.
+      </div>
+      <a href="/settings/gmail/connect" class="btn btn-secondary" style="font-size:0.85rem;">
+        Authorize / Reconnect Gmail Account
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <!-- Matching Profile Facts -->
+    <div class="job-card">
+      <h2 style="font-size:1rem;margin-bottom:var(--space-3);">Matching Bounds (from profile.seed.yaml)</h2>
+      <div style="font-size:0.85rem;color:var(--text-secondary);">
+        <b>Target Locations:</b> Karachi on-site, Karachi hybrid, Remote<br/>
+        <b>Comfortable Experience:</b> Up to 2.0 years<br/>
+        <b>Stretch Experience:</b> 2.0 to 3.0 years<br/>
+        <b>Auto-Skip Experience:</b> Above 3.0 years<br/>
+        <b>Night Shift Accepted:</b> No (Night shift posts are skipped)<br/>
+        <b>Education Status:</b> Bachelor of Software Engineering, 7th Semester (Bahria University)
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

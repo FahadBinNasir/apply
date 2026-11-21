@@ -1,0 +1,48 @@
+GOOGLE_CLIENT_ID:
+  description: "Google Cloud OAuth Client ID for Gmail API (scope gmail.send)"
+  default: ""
+  required: false
+GOOGLE_CLIENT_SECRET:
+  description: "Google Cloud OAuth Client Secret"
+  default: ""
+  required: false
+GOOGLE_REDIRECT_URI:
+  description: "OAuth callback URL"
+  default: "https://apply.fahadbinnasir.tech/oauth/google/callback"
+  required: false
+GMAIL_REFRESH_TOKEN_ENC:
+  description: "Fernet-encrypted Google OAuth refresh token"
+  default: ""
+  required: false
+MAIL_BACKEND:
+  description: "Email backend: 'gmail_api' or 'smtp'"
+  default: "gmail_api"
+  required: false
+SMTP_HOST:
+  description: "SMTP server host"
+  default: "smtp.gmail.com"
+  required: false
+SMTP_PORT:
+  description: "SMTP server port"
+  default: "587"
+  required: false
+SMTP_USER:
+  description: "SMTP user email address"
+  default: ""
+  required: false
+SMTP_PASS:
+  description: "16-character Gmail App Password"
+  default: ""
+  required: false
+SEND_ENABLED:
+  description: "Master kill-switch for sending emails (dry-run mode when false)"
+  default: "false"
+  required: false
+DAILY_SEND_CAP:
+  description: "Maximum number of application emails sent per 24h"
+  default: "25"
+  required: false
+MIN_GAP_SECONDS:
+  description: "Minimum delay between consecutive email transmissions"
+  default: "60"
+  required: false

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Skipped Posts - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:var(--space-4);">
+  <h1 style="font-size:1.5rem;font-weight:700;">Filtered & Skipped Posts</h1>
+  <p style="color:var(--text-secondary);font-size:0.875rem;">
+    Posts automatically filtered by location, experience bounds, non-tech fields, or expired deadlines.
+  </p>
+</div>
+
+{% if vm.by_reason %}
+  {% for category, items in vm.by_reason.items() %}
+  <div style="margin-bottom:var(--space-6);">
+    <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-secondary);text-transform:capitalize;margin-bottom:var(--space-2);border-bottom:1px solid var(--border-subtle);padding-bottom:var(--space-1);">
+      {{ category }} Filter ({{ items|length }})
+    </h2>
+
+    <div class="cards-grid">
+      {% for job in items %}
+      <div class="job-card" id="card-{{ job.id }}" style="opacity:0.85;">
+        <div class="job-card-header">
+          <div>
+            <h3 class="job-title" style="font-size:1rem;">{{ job.title }}</h3>
+            <div class="company-name">{{ job.company }} · 📍 {{ job.location }}</div>
+          </div>
+          {% if job.can_rescue %}
+          <button onclick="rescueJob('{{ job.id }}')" class="btn btn-secondary" style="font-size:0.75rem;padding:0 var(--space-3);">
+            Rescue to Stretch
+          </button>
+          {% endif %}
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:var(--space-1);">
+          <b>Reason:</b> {{ job.reason }}<br/>
+          <b>Source:</b> {{ job.source }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty-box">
+  <h3>No Skipped Jobs</h3>
+  <p>Jobs that fail location or profile constraints will appear here grouped by reason.</p>
+</div>
+{% endif %}
+
+<script>
+async function rescueJob(jobId) {
+  if (!confirm("Rescue this job into STRETCH tier?")) return;
+  const res = await fetch(`/api/jobs/${jobId}/rescue`, { method: "POST" });
+  if (res.ok) {
+    document.getElementById(`card-${jobId}`).remove();
+    alert("Job rescued to Stretch tier in your Inbox!");
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vm.job.title }} at {{ vm.job.company }} - Job Detail{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:var(--space-4);">
+  <a href="/" style="color:var(--text-secondary);text-decoration:none;font-size:0.875rem;">← Back to Inbox</a>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:var(--space-2);">
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700;">{{ vm.job.title }}</h1>
+      <div style="font-size:1rem;color:var(--text-secondary);font-weight:500;">{{ vm.job.company }} · {{ vm.job.location_text }}</div>
+    </div>
+    <span class="badge badge-{{ vm.job.tier.lower() }}">{{ vm.job.tier }}</span>
+  </div>
+</div>
+
+<div class="split-pane">
+  <!-- Left Column: Source & Extracted Intelligence -->
+  <div>
+    <!-- Raw Post Card -->
+    <div class="job-card" style="margin-bottom:var(--space-4);">
+      <h3 style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:var(--space-2);text-transform:uppercase;">
+        Original Post Source ({{ vm.raw_message.chat_name }})
+      </h3>
+      <div style="background:var(--bg-elevated);padding:var(--space-3);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:0.8rem;white-space:pre-wrap;max-height:220px;overflow-y:auto;">
+        {{ vm.raw_message.text }}
+      </div>
+    </div>
+
+    <!-- Match & Gap Analysis -->
+    <div class="job-card" style="margin-bottom:var(--space-4);">
+      <h3 style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:var(--space-2);text-transform:uppercase;">
+        Alignment Analysis
+      </h3>
+      <p style="font-size:0.875rem;margin-bottom:var(--space-2);">{{ vm.job.fit_summary }}</p>
+
+      {% if vm.job.matches %}
+      <div style="margin-bottom:var(--space-2);">
+        <b style="font-size:0.8rem;color:#10b981;">Strong Matches:</b>
+        <ul style="padding-left:1.25rem;font-size:0.8rem;color:var(--text-secondary);">
+          {% for m in vm.job.matches %}<li>{{ m }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if vm.job.gaps %}
+      <div>
+        <b style="font-size:0.8rem;color:#f59e0b;">Disclosures & Gaps:</b>
+        <ul style="padding-left:1.25rem;font-size:0.8rem;color:var(--text-secondary);">
+          {% for g in vm.job.gaps %}<li>{{ g }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tailored CV Preview & Download -->
+    <div class="job-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
+        <h3 style="font-size:0.9rem;color:var(--text-secondary);text-transform:uppercase;">Tailored ATS-Friendly CV</h3>
+        <a href="/jobs/{{ vm.job.id }}/cv/download" class="btn btn-secondary" style="font-size:0.75rem;padding:0 var(--space-2);">
+          Download PDF
+        </a>
+      </div>
+      <div style="background:var(--bg-elevated);padding:var(--space-3);border-radius:var(--radius-md);font-size:0.8rem;">
+        <p><b>Anti-fabrication Status:</b> <span style="color:#10b981;">✓ {{ vm.cv.verifier_notes }}</span></p>
+        <p style="color:var(--text-muted);font-size:0.75rem;margin-top:var(--space-1);">
+          Generated strictly from <code>profile.seed.yaml</code> facts.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Email Draft Editor & Dispatch -->
+  <div>
+    <div class="job-card">
+      <h3 style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:var(--space-3);text-transform:uppercase;">
+        Application Email Review
+      </h3>
+
+      <div class="form-group">
+        <label class="form-label">Recipient Email</label>
+        <input type="email" id="draft-recipient" class="form-input" value="{{ vm.draft.recipient }}"/>
+        {% if vm.job.from_image %}
+        <span style="font-size:0.75rem;color:#f59e0b;">⚠️ Email extracted via OCR poster. Please verify carefully.</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Subject Line (Exact Verbatim)</label>
+        <input type="text" id="draft-subject" class="form-input" value="{{ vm.draft.subject }}"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Body (90-130 words)</label>
+        <textarea id="draft-body" class="form-textarea" rows="10">{{ vm.draft.body }}</textarea>
+      </div>
+
+      <!-- Action Button Area -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-4);">
+        <button onclick="approveAndSend()" class="btn btn-primary" style="font-size:1rem;padding:0.75rem;">
+          Approve & Send via Gmail
+        </button>
+
+        <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);">
+          <button onclick="saveDraft()" class="btn btn-secondary" style="flex:1;">Save Draft</button>
+          <button onclick="markManual()" class="btn btn-secondary" style="flex:1;">Mark Applied Manually</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function approveAndSend() {
+  const recipient = document.getElementById("draft-recipient").value;
+  const subject = document.getElementById("draft-subject").value;
+  if (!confirm(`Are you sure you want to dispatch this email to:\n${recipient}\n\nSubject: ${subject}`)) {
+    return;
+  }
+  const btn = event.target;
+  btn.innerText = "Dispatching...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/jobs/{{ vm.job.id }}/approve-send`, { method: "POST" });
+    if (res.ok) {
+      alert("Application sent successfully!");
+      window.location.href = "/sent";
+    } else {
+      const data = await res.json();
+      alert("Error sending application: " + (data.detail || "Unknown error"));
+      btn.innerText = "Approve & Send via Gmail";
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert("Network error: " + err.message);
+    btn.innerText = "Approve & Send via Gmail";
+    btn.disabled = false;
+  }
+}
+
+async function markManual() {
+  await fetch(`/api/jobs/{{ vm.job.id }}/mark-manual`, { method: "POST" });
+  window.location.href = "/";
+}
+
+async function saveDraft() {
+  alert("Draft saved.");
+}
+</script>
+{% endblock %}

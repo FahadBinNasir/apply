@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{% block title %}WhatsApp Job Agent{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script>
+    // Theme initialization
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <a href="/" class="brand">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981;"></span>
+      Job Agent
+    </a>
+    <nav class="nav-links">
+      <a href="/" class="nav-item">Inbox</a>
+      <a href="/sent" class="nav-item">Sent</a>
+      <a href="/skipped" class="nav-item">Skipped</a>
+      <a href="/opportunities" class="nav-item">Opportunities</a>
+      <a href="/whatsapp" class="nav-item">WhatsApp</a>
+      <a href="/settings" class="nav-item">Settings</a>
+      <button onclick="toggleTheme()" class="nav-item" style="background:none;border:none;cursor:pointer;" title="Toggle Dark/Light Mode">🌓</button>
+      <form action="/logout" method="POST" style="display:inline;">
+        <button type="submit" class="nav-item" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">Exit</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

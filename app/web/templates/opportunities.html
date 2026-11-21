@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Opportunities - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:var(--space-4);">
+  <h1 style="font-size:1.5rem;font-weight:700;">Tech Opportunities</h1>
+  <p style="color:var(--text-secondary);font-size:0.875rem;">
+    Scholarships, hackathons, and certifications filtered from Pintern and student channels.
+  </p>
+</div>
+
+<div class="cards-grid">
+  <!-- Static / Mock display items -->
+  <div class="job-card">
+    <div class="job-card-header">
+      <div>
+        <h2 class="job-title">CERN Summer Student Programme 2027</h2>
+        <div class="company-name">CERN · Geneva, Switzerland</div>
+      </div>
+      <span class="badge" style="background:#1e3a8a;color:#93c5fd;">FELLOWSHIP</span>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-secondary);margin:var(--space-2) 0;">
+      Prestigious summer research programme in physics and computer science. Open to undergraduate tech students.
+    </p>
+    <a href="https://careers.cern/summer-student-programme" target="_blank" class="btn btn-secondary" style="font-size:0.8rem;">
+      Apply on Portal ↗
+    </a>
+  </div>
+
+  <div class="job-card">
+    <div class="job-card-header">
+      <div>
+        <h2 class="job-title">QNX Global Automotive Hackathon</h2>
+        <div class="company-name">BlackBerry QNX</div>
+      </div>
+      <span class="badge" style="background:#3b0764;color:#d8b4fe;">HACKATHON</span>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-secondary);margin:var(--space-2) 0;">
+      Global embedded software and safety-critical OS development hackathon with free developer licenses.
+    </p>
+    <a href="https://qnx.devpost.com" target="_blank" class="btn btn-secondary" style="font-size:0.8rem;">
+      View Hackathon ↗
+    </a>
+  </div>
+
+  <div class="job-card">
+    <div class="job-card-header">
+      <div>
+        <h2 class="job-title">NASA Open Science Essentials Certification</h2>
+        <div class="company-name">NASA TOPS</div>
+      </div>
+      <span class="badge" style="background:#064e3b;color:#6ee7b7;">FREE COURSE</span>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-secondary);margin:var(--space-2) 0;">
+      Free 5-module comprehensive curriculum and digital credential on open research and data science.
+    </p>
+    <a href="https://openscience101.org" target="_blank" class="btn btn-secondary" style="font-size:0.8rem;">
+      Start Free Course ↗
+    </a>
+  </div>
+</div>
+{% endblock %}

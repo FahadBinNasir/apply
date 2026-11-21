@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Sent Applications - WhatsApp Job Agent{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);">
+  <div>
+    <h1 style="font-size:1.5rem;font-weight:700;">Sent Applications</h1>
+    <p style="color:var(--text-secondary);font-size:0.875rem;">
+      {{ vm.today_sent }} of {{ vm.daily_cap }} daily capacity used today
+    </p>
+  </div>
+  <a href="/sent/export.csv" class="btn btn-secondary">Export CSV</a>
+</div>
+
+{% if vm.sends %}
+<div class="cards-grid">
+  {% for send in vm.sends %}
+  <div class="job-card">
+    <div class="job-card-header">
+      <div>
+        <h2 class="job-title">{{ send.title }}</h2>
+        <div class="company-name">{{ send.company }} · To: {{ send.recipient }}</div>
+      </div>
+      <span class="badge" style="background:#064e3b;color:#6ee7b7;">SENT</span>
+    </div>
+    <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:var(--space-2);">
+      <b>Subject:</b> {{ send.subject }}<br/>
+      <b>Gmail Message ID:</b> <code>{{ send.gmail_message_id }}</code><br/>
+      <b>Dispatched:</b> {{ send.sent_at }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-box">
+  <h3>No Applications Sent Yet</h3>
+  <p>Approved job applications dispatched via Gmail API will be permanently recorded here.</p>
+</div>
+{% endif %}
+{% endblock %}

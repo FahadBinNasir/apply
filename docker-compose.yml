@@ -1,0 +1,128 @@
+services:
+  whatsapp:
+    image: devlikeapro/waha:latest
+    container_name: apply_whatsapp
+    restart: unless-stopped
+    environment:
+      - WAHA_LOG_FORMAT=JSON
+      - WAHA_ZIP_LOGS=true
+      - WAHA_PRINT_QR=true
+      - WAHA_DASHBOARD_ENABLED=false
+      - WHATSAPP_API_KEY=${WAHA_API_KEY:-dev_waha_api_key_12345}
+      - WHATSAPP_WEBHOOK_URL=http://app:8080/api/intake/webhook
+      - WHATSAPP_WEBHOOK_EVENTS=message
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+    volumes:
+      - wa_session:/app/.waha
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 2500M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/server/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    container_name: apply_app
+    restart: unless-stopped
+    depends_on:
+      whatsapp:
+        condition: service_healthy
+    environment:
+      # Server & Environment
+      - APP_ENV=production
+      - APP_PORT=8080
+      - DATABASE_URL=sqlite:////app_data/db/apply.sqlite
+
+      # Security & Passwords
+      - DASHBOARD_PASSWORD_HASH=${DASHBOARD_PASSWORD_HASH}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - FERNET_KEY=${FERNET_KEY}
+
+      # Free Tier LLM Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL_FAST=${GEMINI_MODEL_FAST:-gemini-2.5-flash}
+      - GEMINI_MODEL_SMART=${GEMINI_MODEL_SMART:-gemini-2.5-flash}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
+
+      # Gmail & Email Sending Safety
+      - SEND_ENABLED=${SEND_ENABLED:-false}
+      - DAILY_SEND_CAP=${DAILY_SEND_CAP:-25}
+      - MIN_GAP_SECONDS=${MIN_GAP_SECONDS:-60}
+      - MAIL_BACKEND=${MAIL_BACKEND:-gmail_api}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://apply.fahadbinnasir.tech/oauth/google/callback}
+      - GMAIL_REFRESH_TOKEN_ENC=${GMAIL_REFRESH_TOKEN_ENC:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+
+      # WhatsApp Integration
+      - WAHA_BASE_URL=http://whatsapp:3000
+      - WAHA_API_KEY=${WAHA_API_KEY:-dev_waha_api_key_12345}
+      - WATCHED_CHATS=${WATCHED_CHATS:-}
+      - ENABLE_SIMULATOR=${ENABLE_SIMULATOR:-false}
+      - NOW_OVERRIDE=${NOW_OVERRIDE:-}
+    volumes:
+      - app_data:/app_data
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    networks:
+      - internal
+      - default
+    deploy:
+      resources:
+        limits:
+          memory: 2000M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Optional Caddy reverse proxy profile if standalone HTTPS is needed
+  proxy:
+    image: caddy:2-alpine
+    container_name: apply_proxy
+    restart: unless-stopped
+    profiles: ["with-proxy"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=apply.fahadbinnasir.tech
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    command: >
+      caddy reverse-proxy --from apply.fahadbinnasir.tech --to app:8080
+    networks:
+      - default
+    depends_on:
+      - app
+
+volumes:
+  app_data:
+    name: apply_app_data
+  wa_session:
+    name: apply_wa_session
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    internal: true
+  default:

@@ -1,0 +1,8 @@
+DATABASE_URL:
+  description: "SQLite database connection string"
+  default: "sqlite+aiosqlite:////app_data/db/apply.sqlite"
+  required: false
+FERNET_KEY:
+  description: "32-byte url-safe base64 key for encrypting OAuth tokens at rest"
+  default: ""
+  required: true
