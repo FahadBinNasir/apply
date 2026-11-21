@@ -1,0 +1,45 @@
+{
+  "total_opportunities": 4,
+  "opportunities": [
+    {
+      "id": "opp_cern_2027",
+      "title": "CERN Summer Student Programme 2027",
+      "organization": "CERN (Geneva, Switzerland)",
+      "type": "fellowship",
+      "deadline": "2027-01-31",
+      "link": "https://careers.cern/summer-student-programme",
+      "description": "Prestigious summer research programme in physics and computer science. Open to undergraduate tech students.",
+      "tags": ["international", "research", "cs"]
+    },
+    {
+      "id": "opp_qnx_hackathon",
+      "title": "QNX Global Automotive Hackathon",
+      "organization": "BlackBerry QNX",
+      "type": "hackathon",
+      "deadline": "2026-12-15",
+      "link": "https://qnx.devpost.com",
+      "description": "Global embedded software and safety-critical OS development hackathon with free developer licenses.",
+      "tags": ["hackathon", "embedded", "c++"]
+    },
+    {
+      "id": "opp_nasa_open_science",
+      "title": "NASA Open Science Essentials Certification",
+      "organization": "NASA TOPS",
+      "type": "course",
+      "deadline": null,
+      "link": "https://openscience101.org",
+      "description": "Free 5-module comprehensive curriculum and digital credential on open research, reproducibility, and ethics.",
+      "tags": ["certification", "data-science", "free"]
+    },
+    {
+      "id": "opp_dubai_ai",
+      "title": "Dubai One Million Prompters Free AI Course",
+      "organization": "Dubai Future Foundation",
+      "type": "course",
+      "deadline": null,
+      "link": "https://prompt.dubai.ae",
+      "description": "Practical generative AI engineering and prompt engineering certification for students and developers.",
+      "tags": ["ai", "prompt-engineering", "free"]
+    }
+  ]
+}

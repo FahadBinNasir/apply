@@ -1,0 +1,51 @@
+{
+  "job": {
+    "id": "job_ebg_storage",
+    "company": "EBG Partner",
+    "title": "Intern - Storage & Compute",
+    "field": "IT infrastructure (stretch)",
+    "tier": "STRETCH",
+    "tier_reasons": [
+      "Karachi On-site",
+      "Fresh graduate eligible",
+      "IT infrastructure / Enterprise Storage is marked stretch"
+    ],
+    "score": 62.0,
+    "status": "drafted",
+    "location_text": "Karachi, Pakistan",
+    "work_mode": "onsite",
+    "city": "Karachi",
+    "experience_min_years": 0.0,
+    "experience_max_years": 0.0,
+    "skills": ["Enterprise Storage", "Compute Technologies", "Data Center Infrastructure"],
+    "deadline": null,
+    "apply_method": "email",
+    "apply_email": "muhammad.bilal.ahmed30@gmail.com",
+    "exact_subject": "Application for Storage & Compute Internship – Fahad Bin Nasir",
+    "from_image": false,
+    "fresh_grad_ok": true,
+    "fit_summary": "Stretch opportunity: IT infrastructure domain. Eligible as fresh graduate/student based in Karachi.",
+    "matches": ["Karachi on-site", "Fresh graduate eligibility", "Strong systems fundamentals"],
+    "gaps": ["Domain focus on hardware storage/compute rather than core software engineering"],
+    "source_messages": ["LinkedIn Share WhatsApp Group"],
+    "created_at": "2026-11-21T12:00:00Z"
+  },
+  "raw_message": {
+    "chat_name": "LinkedIn Share WhatsApp Group",
+    "timestamp": "2026-11-21 12:00",
+    "text": "*Internship Opportunity | Storage & Compute | Karachi,* Pakistan\nAn EBG Partner in Karachi is looking for enthusiastic and motivated Interns in the Storage and Compute domains!\nDomains: Enterprise Storage, Compute Technologies, Data Center Infrastructure\nWho can apply? Fresh graduates.\nInterested candidates can share their updated CV through LinkedIn Inbox or directly via email: muhammad.bilal.ahmed30@gmail.com"
+  },
+  "draft": {
+    "id": "draft_ebg",
+    "recipient": "muhammad.bilal.ahmed30@gmail.com",
+    "subject": "Application for Storage & Compute Internship – Fahad Bin Nasir",
+    "body": "Dear Mr. Bilal Ahmed,\n\nI am writing to express my interest in the Storage and Compute Internship at EBG Partner in Karachi. Currently enrolled in the 7th semester of my Bachelor of Software Engineering degree at Bahria University, I possess robust systems fundamentals including Linux server administration, networking concepts (VLAN routing, Dijkstra's algorithm), and embedded hardware interfacing.\n\nI am eager to learn enterprise storage architectures and data center compute operations. Please find my CV attached.\n\nSincerely,\nFahad Bin Nasir\n+92 327 8262810\nfahadabbasi17025@gmail.com"
+  },
+  "cv": {
+    "id": "cv_ebg",
+    "pdf_path": "/app_data/cvs/Fahad_Bin_Nasir_CV_EBGPartner_StorageComputeIntern.pdf",
+    "preview_png_paths": ["/jobs/job_ebg_storage/cv/preview/1"],
+    "passes_verifier": true,
+    "verifier_notes": "Emphasizes IoT, Linux, and networking coursework truthfully."
+  }
+}

@@ -1,0 +1,122 @@
+# Seed profile extracted from Fahad_CV_v3.pdf. The app must ONLY use facts from this file.
+# Lines marked TODO need your answer.
+
+name: Fahad Bin Nasir
+email: fahadabbasi17025@gmail.com
+phone: "+92 327 8262810"
+location: Karachi, Pakistan
+links:
+  linkedin: https://linkedin.com/in/fahad-bin-nasir-580948290
+  portfolio: https://fahad-portfolio-tawny.vercel.app
+  github: TODO_ADD_GITHUB_URL
+
+personal:
+  gender: TODO   # male | female. Needed for "female only" posts. Unknown = flag, never auto-reject.
+  accepts_night_shift: TODO   # true | false
+  languages: [English (Fluent), Urdu (Native)]
+
+status:
+  degree: Bachelor of Software Engineering
+  university: Bahria University, Karachi
+  semester: 7
+  expected_graduation: TODO   # e.g. 2026-12 or 2027-06
+  available_as: [internship, part-time, entry-level job, trainee]
+
+matching:
+  hard_locations: ["Karachi onsite", "Karachi hybrid", "Remote"]
+  remote_must_accept_pakistan: true
+  target_fields:
+    - software engineering
+    - backend
+    - full-stack web
+    - AI / machine learning
+    - data science / analytics
+    - mobile (Flutter)
+    - DevOps / cloud
+    - QA / test automation
+    - IoT / embedded
+    - .NET / C# junior
+    - IT infrastructure (stretch)
+  avoid_fields:
+    - sales, business development, lead generation
+    - HR, admin, data entry, documentation
+    - accounting, finance, banking trainee (non-tech)
+    - marketing, social media, SEO, content, graphic design
+    - customer service, telecalling
+    - teaching, medical, legal, trades
+  experience:
+    comfortable_max_years: 2      # up to this = normal
+    stretch_max_years: 3          # 2-3 yrs = Stretch tier with note
+    skip_above_years: 3           # above = Skipped (still visible)
+  notes: >
+    Fresher/final-year. Apply even if the post says "job" but could accept an intern.
+    Never auto-reject for seniority words like "junior/trainee/fresh"; they only change the tier.
+
+skills:
+  languages: [Python, Dart, TypeScript, JavaScript, C#, C++, Java, HTML/CSS]
+  ai_ml: [TensorFlow, Keras, Scikit-learn, OpenCV, MediaPipe, Pandas, NumPy, SMOTE, "Groq (Llama 3.1)"]
+  web_backend: [FastAPI, Next.js, Streamlit, REST APIs, SSE, OAuth 2.0, Nango, Microsoft Presidio]
+  mobile_tools: [Flutter, Firebase, Provider, Git, GitHub, SQL, Unity, Arduino IDE, Cisco Packet Tracer]
+  concepts: [RBAC, PII Redaction, GDPR Compliance, State Management, VLAN Routing, "Dijkstra's Algorithm"]
+
+education:
+  - degree: Bachelor of Software Engineering
+    school: Bahria University, Karachi
+    years: "2022 - Present"
+    note: Currently in 7th semester
+  - degree: FSc Pre-Engineering
+    school: Cadet College Ormara
+    years: "2016 - 2022"
+
+projects:
+  - id: knowledge-brain
+    name: Unified Knowledge Brain - Enterprise RAG Platform (FYP)
+    years: "2025 - Present"
+    context: Final Year Project, Bahria University
+    tech: [Python, FastAPI, Next.js, TypeScript, Presidio, "Groq (Llama 3.1)"]
+    tags: [backend, ai, fullstack, security, devops]
+    bullets:
+      - Architected a security-first enterprise knowledge platform ingesting data from 6 OAuth/PAT-authenticated integrations (GitHub, Gmail, Google Drive, Dropbox, Zendesk, Slack) with Nango webhook streaming for real-time sync.
+      - Engineered a dual-layer PII security pipeline combining Microsoft Presidio with a custom regex secret classifier to detect and redact credentials (API keys, JWTs, tokens) before storage.
+      - Designed a 5-tier RBAC clearance system with GDPR-compliant PII deletion workflows, grace-period scheduling, and live SSE-based ingestion feeds via FastAPI + Next.js/TypeScript frontend.
+  - id: exam-cheating-detector
+    name: AI Exam Cheating Detector
+    years: Fall 2025
+    context: Software Construction Lab, Bahria University
+    tech: [Python, OpenCV, MediaPipe, Tkinter]
+    tags: [ai, computer-vision, python]
+    bullets:
+      - Built a real-time desktop proctoring app using OpenCV and MediaPipe for multi-signal behavioral analysis - face-gaze tracking, tab-switch detection, and ML-based keystroke anomaly scoring.
+      - Automated reporting pipeline classifying 100% of sessions as Honest or Cheating via auto-generated CSV evidence logs; delivered admin dashboard with live cheating statistics and distribution charts.
+  - id: churnvision
+    name: Customer Churn Prediction - ChurnVision Pro
+    years: Fall 2025
+    context: Introduction to Data Science, Bahria University
+    tech: [Python, Scikit-learn, Keras, Streamlit]
+    tags: [data, ai, ml, python]
+    bullets:
+      - Trained and benchmarked Random Forest (GridSearchCV, 5-fold CV) and ANN (Keras, Dropout, Early Stopping) on the 7,043-record Telco dataset with SMOTE oversampling to correct class imbalance.
+      - Deployed a Streamlit dashboard with live churn prediction and comparative model evaluation across Accuracy, Precision, Recall, F1, and Confusion Matrix metrics; implemented dark/light mode toggle.
+  - id: flutter-suite
+    name: Flutter Mobile App Suite (4 Applications)
+    years: "2025 - 2026"
+    context: Personal and University Projects
+    tech: [Flutter, Dart, Provider, Firebase, OpenAI API, Open-Meteo REST API]
+    tags: [mobile, flutter, frontend]
+    bullets:
+      - "Weather App: Integrated Open-Meteo REST APIs for live global city search, 24-hour timeline, and 7-day forecasts with dynamic WMO-code-driven UI themes and pull-to-refresh fallback."
+      - "E-Commerce App: Centralized cart/wishlist state via Provider (ChangeNotifier) with dynamic promo-code checkout engine, live badge counters, and order confirmation flows."
+      - "Expense Tracker: Offline-first financial app with SharedPreferences JSON persistence, full CRUD workflows, and real-time budget analytics across 9 transaction categories."
+      - "DesiFit (In Progress): Pakistani-focused fitness app with an offline desi food database, AI-generated personalized meal and workout plans via OpenAI API, and Ethereum smart contract integration for health data security."
+  - id: iot-inventory
+    name: Smart Inventory Management System (IoT)
+    years: Fall 2025
+    context: Embedded Systems & Design Lab, Bahria University
+    tech: [NodeMCU ESP8266, RFID, Arduino IDE]
+    tags: [iot, embedded, hardware]
+    bullets:
+      - Developed an RFID-based inventory tracker on NodeMCU ESP8266 with real-time HTTPS transmission to a cloud server, I2C LCD display, and buzzer feedback; resolved SSL handshake failures under embedded memory constraints.
+
+courses: []   # TODO: add courses/certificates (name, issuer, year). Agent: never invent any.
+experience: []
+achievements: []

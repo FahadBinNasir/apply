@@ -1,0 +1,61 @@
+{
+  "total_skipped": 5,
+  "by_reason": {
+    "location": [
+      {
+        "id": "job_pentaloop_ios",
+        "company": "Pentaloop",
+        "title": "ASE - iOS Developer",
+        "location": "Johar Town, Lahore",
+        "reason": "Onsite in Lahore outside target locations",
+        "source": "Alumni group",
+        "created_at": "2026-11-21T09:00:00Z",
+        "can_rescue": true
+      },
+      {
+        "id": "job_techtimize_mern",
+        "company": "Techtimize",
+        "title": "MERN + AI Intern",
+        "location": "Lahore onsite",
+        "reason": "Onsite in Lahore outside target locations",
+        "source": "WhatsApp Channel",
+        "created_at": "2026-11-21T09:30:00Z",
+        "can_rescue": true
+      }
+    ],
+    "field": [
+      {
+        "id": "job_wenawa_bd",
+        "company": "Wenawa",
+        "title": "Business Development Trainee",
+        "location": "Hybrid Karachi",
+        "reason": "Sales / Business Development is in avoid_fields",
+        "source": "Karachi Jobs",
+        "created_at": "2026-11-21T08:15:00Z",
+        "can_rescue": true
+      },
+      {
+        "id": "job_roomi_ca",
+        "company": "Roomi Associates",
+        "title": "Audit Associate (ACCA/CA)",
+        "location": "Karachi",
+        "reason": "Accounting/Finance non-tech avoid field",
+        "source": "General Jobs",
+        "created_at": "2026-11-21T08:00:00Z",
+        "can_rescue": false
+      }
+    ],
+    "expired": [
+      {
+        "id": "job_alkhidmat_hr",
+        "company": "Alkhidmat",
+        "title": "HR & Admin Officer",
+        "location": "Karachi",
+        "reason": "Application deadline 2026-11-20 expired",
+        "source": "Community Channel",
+        "created_at": "2026-11-21T07:45:00Z",
+        "can_rescue": false
+      }
+    ]
+  }
+}

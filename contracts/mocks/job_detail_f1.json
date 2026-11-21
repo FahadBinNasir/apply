@@ -1,0 +1,66 @@
+{
+  "job": {
+    "id": "job_paysys_devops",
+    "company": "Paysys Labs",
+    "title": "DevOps Engineer",
+    "field": "DevOps / cloud",
+    "tier": "STRONG",
+    "tier_reasons": [
+      "Target field DevOps/cloud match",
+      "Karachi On-site",
+      "0-1 years fresh graduate friendly"
+    ],
+    "score": 92.5,
+    "status": "drafted",
+    "location_text": "Karachi (On-site)",
+    "work_mode": "onsite",
+    "city": "Karachi",
+    "experience_min_years": 0.0,
+    "experience_max_years": 1.0,
+    "education": "Bachelor's degree in Computer Science, Software Engineering, IT",
+    "skills": ["CI/CD pipelines", "Linux administration", "SQL", "Git", "Scripting", "API testing"],
+    "responsibilities": [
+      "CI/CD pipelines and automation",
+      "Linux administration and troubleshooting",
+      "On-premises deployments and release management"
+    ],
+    "deadline": "2026-11-28",
+    "apply_method": "email",
+    "apply_email": "hiring@paysyslabs.com",
+    "exact_subject": "DevOps Engineer – Application",
+    "from_image": false,
+    "fresh_grad_ok": true,
+    "fit_summary": "Exceptional fit. Karachi on-site fresh graduate role matching your FYP DevOps/CI experience, Linux, and backend skills.",
+    "matches": [
+      "CI/CD and automation pipelines",
+      "Linux administration and scripting",
+      "FastAPI backend & SQL databases",
+      "Git version control"
+    ],
+    "gaps": [],
+    "source_messages": [
+      "Alumni WhatsApp Group (2026-11-21 10:15)"
+    ],
+    "created_at": "2026-11-21T10:15:00Z"
+  },
+  "raw_message": {
+    "chat_name": "Bahria CS Alumni Group",
+    "timestamp": "2026-11-21 10:15",
+    "text": "We're Hiring – *DevOps Engineer!*\nPaysys Labs is looking for an enthusiastic and detail-oriented DevOps Engineer to join our growing team!\n📍 Location: *Karachi (On-site)*\n💼 Experience: *0–1 Years | Fresh Graduates Encouraged to Apply*\nKey Skills & Requirements:\nCI/CD pipelines and automation\nLinux administration and troubleshooting\nOn-premises deployments and release management\nSQL and relational databases\nGit and version control\nScripting and process automation\nAPI testing and test automation\nBasic understanding of AI-assisted development and automation tools\n🎓 Qualification: Bachelor's degree in Computer Science, Software Engineering, IT, or a related field.\n📩 Apply Now!\nSend your updated CV to hiring@paysyslabs.com with the subject line \"DevOps Engineer – Application\"."
+  },
+  "draft": {
+    "id": "draft_paysys",
+    "recipient": "hiring@paysyslabs.com",
+    "subject": "DevOps Engineer – Application",
+    "body": "Dear Hiring Team at Paysys Labs,\n\nI am writing to apply for the DevOps Engineer position. As a 7th-semester Software Engineering student at Bahria University Karachi, I have hands-on experience designing CI/CD pipelines, automating Docker deployments, and managing Linux server environments within my enterprise Final Year Project.\n\nMy background in SQL, automated testing, and scripting directly aligns with the technical responsibilities outlined in your posting. I have attached my tailored CV for your consideration and look forward to the opportunity to contribute to Paysys Labs.\n\nSincerely,\nFahad Bin Nasir\n+92 327 8262810\nfahadabbasi17025@gmail.com\nhttps://linkedin.com/in/fahad-bin-nasir-580948290"
+  },
+  "cv": {
+    "id": "cv_paysys",
+    "pdf_path": "/app_data/cvs/Fahad_Bin_Nasir_CV_PaysysLabs_DevOpsEngineer.pdf",
+    "preview_png_paths": [
+      "/jobs/job_paysys_devops/cv/preview/1"
+    ],
+    "passes_verifier": true,
+    "verifier_notes": "100% compliant with profile.seed.yaml facts."
+  }
+}

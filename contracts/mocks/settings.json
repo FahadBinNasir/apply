@@ -1,0 +1,27 @@
+{
+  "system": {
+    "send_enabled": false,
+    "daily_send_cap": 25,
+    "min_gap_seconds": 60,
+    "gemini_model_fast": "gemini-2.5-flash",
+    "gemini_model_smart": "gemini-2.5-flash",
+    "groq_fallback_enabled": true,
+    "groq_model": "llama-3.3-70b-versatile",
+    "now_override": null
+  },
+  "gmail": {
+    "connected": true,
+    "email": "fahadabbasi17025@gmail.com",
+    "token_expires_at": "2026-11-28T18:00:00Z",
+    "is_expired": false
+  },
+  "matching": {
+    "target_locations": ["Karachi onsite", "Karachi hybrid", "Remote"],
+    "comfortable_max_years": 2.0,
+    "stretch_max_years": 3.0,
+    "skip_above_years": 3.0,
+    "accepts_night_shift": false,
+    "target_fields_count": 11,
+    "avoid_fields_count": 6
+  }
+}

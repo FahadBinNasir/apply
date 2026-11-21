@@ -1,0 +1,10 @@
+{
+  "connected": false,
+  "engine": "WAHA Core (WEBJS)",
+  "phone": null,
+  "battery": null,
+  "last_seen": null,
+  "watched_chats": [],
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "instructions": "Scan this QR code using a secondary WhatsApp number (Linked Devices > Link a Device). Ensure the phone remains connected."
+}

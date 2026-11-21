@@ -1,0 +1,51 @@
+{
+  "job": {
+    "id": "job_decibel_mto",
+    "company": "Decibel HRMS",
+    "title": "MTO - Dot Net Developer",
+    "field": ".NET / C# junior",
+    "tier": "STRONG",
+    "tier_reasons": [
+      "Target field .NET/C# junior match",
+      "Karachi On-site",
+      "0-1 years fresh graduate friendly"
+    ],
+    "score": 88.0,
+    "status": "drafted",
+    "location_text": "Shahra-e-Faisal, Karachi",
+    "work_mode": "onsite",
+    "city": "Karachi",
+    "experience_min_years": 0.0,
+    "experience_max_years": 1.0,
+    "skills": ["C#", "ASP .NET with webforms", "REST APIs", "SQL"],
+    "deadline": null,
+    "apply_method": "email",
+    "apply_email": "careers@decibel360.com",
+    "exact_subject": "MTO - Dot Net Developer",
+    "from_image": false,
+    "fresh_grad_ok": true,
+    "fit_summary": "Strong fit for .NET MTO role in Karachi. C# and relational database background verified.",
+    "matches": ["C# language proficiency", "SQL database design and queries", "REST API integration"],
+    "gaps": ["ASP .NET with webforms (addressed transparently in summary)"],
+    "source_messages": ["Tech Jobs Karachi Group"],
+    "created_at": "2026-11-21T11:30:00Z"
+  },
+  "raw_message": {
+    "chat_name": "Tech Jobs Karachi Group",
+    "timestamp": "2026-11-21 11:30",
+    "text": "Hiring: *MTO - Dot Net Developer* at Decibel HRMS\n📍 Location: *Shahra-e-Faisal, Karachi*\n·Develop and maintain scalable web-based applications using C#, *ASP .NET with webforms* .\n·Build and integrate REST APIs across systems.\n·Create and manage SQL database objects: procedures, functions, and views.\n·Bachelor's degree in computer science or relevant field\n·0-1 years of experience of backend development using .NET with webforms\n📩 Interested candidates can apply at careers@decibel360.com by mentioning the position title \"MTO - Dot Net Developer\" in the subject line."
+  },
+  "draft": {
+    "id": "draft_decibel",
+    "recipient": "careers@decibel360.com",
+    "subject": "MTO - Dot Net Developer",
+    "body": "Dear Hiring Team at Decibel HRMS,\n\nI am writing to express my enthusiasm for the MTO - Dot Net Developer position. As a 7th-semester Software Engineering student at Bahria University Karachi, I possess solid proficiency in C#, SQL database modeling, and RESTful API engineering.\n\nWhile my primary web experience is with modern API architectures, I have strong fundamentals in object-oriented C# and am eager to apply my technical grounding to your application stack. I have attached my tailored CV for your review.\n\nSincerely,\nFahad Bin Nasir\n+92 327 8262810\nfahadabbasi17025@gmail.com"
+  },
+  "cv": {
+    "id": "cv_decibel",
+    "pdf_path": "/app_data/cvs/Fahad_Bin_Nasir_CV_DecibelHRMS_MTODotNetDeveloper.pdf",
+    "preview_png_paths": ["/jobs/job_decibel_mto/cv/preview/1"],
+    "passes_verifier": true,
+    "verifier_notes": "Anti-fabrication check passed. Honest representation of C# skills without claiming WebForms."
+  }
+}

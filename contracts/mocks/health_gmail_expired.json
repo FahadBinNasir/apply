@@ -1,0 +1,12 @@
+{
+  "status": "warning",
+  "database": "connected",
+  "waha": "connected",
+  "gmail": "token_expired",
+  "llm_gemini": "operational",
+  "llm_groq": "standby",
+  "queue_depth": 0,
+  "memory_usage_mb": 145.2,
+  "uptime_seconds": 45100,
+  "banner_warning": "Gmail OAuth token expired (Google 7-day consent expiry). Reconnect Gmail in Settings to enable sending."
+}

@@ -1,0 +1,31 @@
+{
+  "connected": true,
+  "engine": "WAHA Core (WEBJS)",
+  "phone": "+92 300 1234567",
+  "battery": 92,
+  "last_seen": "2026-11-21T18:55:00Z",
+  "watched_chats": [
+    {
+      "id": "1203630248572918@g.us",
+      "name": "Bahria CS & SE Alumni 2022-2026",
+      "type": "group",
+      "last_message": "DevOps Engineer hiring post (Paysys Labs)",
+      "last_activity": "2026-11-21T10:15:00Z"
+    },
+    {
+      "id": "1203631982736451@newsletter",
+      "name": "Pintern Internship Channel",
+      "type": "channel",
+      "last_message": "Storage & Compute Intern (EBG Partner)",
+      "last_activity": "2026-11-21T12:00:00Z"
+    },
+    {
+      "id": "923278262810@c.us",
+      "name": "Message Yourself (Fahad)",
+      "type": "self_chat",
+      "last_message": "Forwarded post: Techdots Pakistan Link",
+      "last_activity": "2026-11-21T14:10:00Z"
+    }
+  ],
+  "qr_code": null
+}

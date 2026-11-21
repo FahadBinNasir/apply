@@ -1,0 +1,47 @@
+{
+  "active_tab": "STRONG",
+  "counts": {
+    "strong": 2,
+    "stretch": 1,
+    "manual": 1,
+    "walkin": 0
+  },
+  "today_new_count": 3,
+  "deadline_soon_count": 1,
+  "jobs": [
+    {
+      "id": "job_paysys_devops",
+      "company": "Paysys Labs",
+      "title": "DevOps Engineer",
+      "tier": "STRONG",
+      "tier_reasons": ["Target field DevOps/cloud match", "Karachi On-site", "0-1 years fresh graduate friendly"],
+      "score": 92.5,
+      "status": "drafted",
+      "apply_method": "email",
+      "apply_email": "hiring@paysyslabs.com",
+      "exact_subject": "DevOps Engineer – Application",
+      "deadline": "2026-11-28",
+      "location_text": "Karachi (On-site)",
+      "matches": ["CI/CD pipelines", "Linux administration", "SQL", "Git"],
+      "gaps": [],
+      "created_at": "2026-11-21T10:15:00Z"
+    },
+    {
+      "id": "job_decibel_mto",
+      "company": "Decibel HRMS",
+      "title": "MTO - Dot Net Developer",
+      "tier": "STRONG",
+      "tier_reasons": ["Target field .NET/C# junior match", "Karachi On-site", "0-1 years fresh graduate friendly"],
+      "score": 88.0,
+      "status": "drafted",
+      "apply_method": "email",
+      "apply_email": "careers@decibel360.com",
+      "exact_subject": "MTO - Dot Net Developer",
+      "deadline": null,
+      "location_text": "Shahra-e-Faisal, Karachi",
+      "matches": ["C#", "REST APIs", "SQL databases"],
+      "gaps": ["ASP .NET with webforms (honest disclosure)"],
+      "created_at": "2026-11-21T11:30:00Z"
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "test_clock": "2026-11-21T00:00:00",
+  "fixtures": {
+    "F1": {
+      "id": "F1",
+      "name": "Paysys Labs DevOps",
+      "expected_tier": "STRONG",
+      "expected_company": "Paysys Labs",
+      "expected_title": "DevOps Engineer",
+      "expected_apply_email": "hiring@paysyslabs.com",
+      "expected_exact_subject": "DevOps Engineer – Application",
+      "expected_apply_method": "email",
+      "reasons": ["Target field DevOps/cloud match", "Karachi On-site", "0-1 years fresh graduate friendly"]
+    },
+    "F2": {
+      "id": "F2",
+      "name": "Decibel MTO .NET",
+      "expected_tier": "STRONG",
+      "expected_company": "Decibel HRMS",
+      "expected_title": "MTO - Dot Net Developer",
+      "expected_apply_email": "careers@decibel360.com",
+      "expected_exact_subject": "MTO - Dot Net Developer",
+      "expected_apply_method": "email",
+      "reasons": ["Target field .NET/C# junior match", "Karachi On-site", "0-1 years fresh graduate friendly"],
+      "gaps": ["ASP .NET with webforms experience (must be noted honestly)"]
+    },
+    "F3": {
+      "id": "F3",
+      "name": "EBG Storage & Compute intern",
+      "expected_tier": "STRETCH",
+      "expected_company": "EBG Partner",
+      "expected_title": "Intern - Storage & Compute",
+      "expected_apply_email": "muhammad.bilal.ahmed30@gmail.com",
+      "expected_apply_method": "email",
+      "reasons": ["Karachi On-site", "Fresh graduate eligible", "IT infrastructure / Enterprise Storage is marked stretch"]
+    },
+    "F4": {
+      "id": "F4",
+      "name": "Pentaloop iOS (Lahore)",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "location",
+      "expected_company": "Pentaloop",
+      "reasons": ["On-site in Lahore outside target locations"]
+    },
+    "F5": {
+      "id": "F5",
+      "name": "Techtimize MERN + AI intern (Lahore onsite)",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "location",
+      "expected_company": "Techtimize",
+      "reasons": ["On-site in Lahore outside target locations"]
+    },
+    "F6": {
+      "id": "F6",
+      "name": "Superior University (Multi-role)",
+      "expected_tier": "SKIPPED",
+      "multi_role": true,
+      "roles": [
+        {
+          "title": "Lecturer for CS & IT",
+          "expected_tier": "SKIPPED",
+          "skip_reason": "education",
+          "reasons": ["Requires MS degree"]
+        },
+        {
+          "title": "Assistant Professor Management",
+          "expected_tier": "SKIPPED",
+          "skip_reason": "field",
+          "reasons": ["Non-tech academic position"]
+        }
+      ]
+    },
+    "F7": {
+      "id": "F7",
+      "name": "Wenawa Business Development Trainee",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "field",
+      "reasons": ["Sales / BD is in avoid_fields"]
+    },
+    "F8": {
+      "id": "F8",
+      "name": "Inovativex BD Intern",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "field",
+      "reasons": ["Business development avoid field"]
+    },
+    "F9": {
+      "id": "F9",
+      "name": "Roomi Associates",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "field",
+      "reasons": ["Finance/Accounting avoid field (ACCA/CA/ICMA)"]
+    },
+    "F10": {
+      "id": "F10",
+      "name": "Code Avenue Senior Project Manager",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "experience",
+      "reasons": ["Senior role exceeding comfortable experience bounds"]
+    },
+    "F11": {
+      "id": "F11",
+      "name": "Alkhidmat HR & Admin",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "expired",
+      "reasons": ["Deadline 20 Nov 2026 expired", "HR/Admin is in avoid_fields"]
+    },
+    "F12": {
+      "id": "F12",
+      "name": "Nimir Chemicals MTO Lahore",
+      "expected_tier": "SKIPPED",
+      "skip_reason": "location",
+      "reasons": ["Lahore onsite", "Deadline 16 Nov 2026 expired"]
+    }
+  },
+  "poster_cases": {
+    "MCB_Funds": {
+      "expected_tier": "STRETCH",
+      "from_image": true,
+      "reasons": ["Software Engineer Karachi", "1-2 years experience soft ceiling", "OCR derived email requires verification"]
+    },
+    "DigiPersona": {
+      "expected_tier": "SKIPPED",
+      "skip_reason": "field",
+      "from_image": true,
+      "reasons": ["Account Management & Digital Media avoid field"]
+    },
+    "PMTF_CoE": {
+      "expected_tier": "SKIPPED",
+      "skip_reason": "expired",
+      "from_image": true,
+      "reasons": ["Deadline 20 Nov 2026 has expired"]
+    }
+  },
+  "special_cases": {
+    "Walkin_GlobalStep": {
+      "expected_tier": "SKIPPED",
+      "skip_reason": "field",
+      "has_walkin_details": true
+    },
+    "Pintern_Headline": {
+      "requires_link_fetch": true
+    },
+    "LinkedIn_Link_Only": {
+      "expected_tier": "MANUAL",
+      "manual_reason": "login wall / link only"
+    },
+    "WhatsApp_Apply": {
+      "expected_apply_method": "whatsapp"
+    },
+    "Female_Only_Unknown_Gender": {
+      "expected_tier": "STRETCH",
+      "has_warning": true,
+      "warning": "Gender requirement: female only"
+    },
+    "Night_Shift": {
+      "expected_tier": "SKIPPED",
+      "skip_reason": "night_shift"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "active_tab": "STRONG",
+  "counts": {
+    "strong": 0,
+    "stretch": 0,
+    "manual": 0,
+    "walkin": 0
+  },
+  "today_new_count": 0,
+  "deadline_soon_count": 0,
+  "jobs": [],
+  "empty_state": {
+    "title": "All caught up",
+    "description": "No pending applications to review right now. New matching posts from watched WhatsApp groups will appear here automatically."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "total_sent": 1,
+  "today_sent": 1,
+  "daily_cap": 25,
+  "sends": [
+    {
+      "id": "send_001",
+      "job_id": "job_paysys_devops",
+      "company": "Paysys Labs",
+      "title": "DevOps Engineer",
+      "recipient": "hiring@paysyslabs.com",
+      "subject": "DevOps Engineer – Application",
+      "gmail_message_id": "18de92b95fa110ec",
+      "status": "sent",
+      "sent_at": "2026-11-21T14:30:00Z"
+    }
+  ]
+}

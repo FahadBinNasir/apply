@@ -1,0 +1,11 @@
+{
+  "status": "healthy",
+  "database": "connected",
+  "waha": "connected",
+  "gmail": "authenticated",
+  "llm_gemini": "operational",
+  "llm_groq": "standby",
+  "queue_depth": 0,
+  "memory_usage_mb": 142.5,
+  "uptime_seconds": 38400
+}

@@ -1,0 +1,29 @@
+# Virtualenv & python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases & local data
+*.db
+*.sqlite
+*.sqlite3
+app_data/
+wa_session/
+.agents/tmp/
+
+# Secrets and environment
+.env
+.env.local
+token.json
+credentials.json
+
+# Logs & temp
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

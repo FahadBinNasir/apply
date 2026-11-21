@@ -1,0 +1,13 @@
+{
+  "status": "degraded",
+  "database": "connected",
+  "waha": "connected",
+  "gmail": "authenticated",
+  "llm_gemini": "quota_exhausted",
+  "llm_groq": "quota_exhausted",
+  "queue_depth": 7,
+  "queue_state": "waiting_for_quota",
+  "memory_usage_mb": 154.0,
+  "uptime_seconds": 41200,
+  "banner_warning": "Free-tier LLM quota exhausted for today. Ingestion remains active; 7 jobs waiting in queue."
+}

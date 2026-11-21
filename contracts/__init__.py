@@ -1,0 +1,76 @@
+"""
+Contracts module for WhatsApp Job Agent.
+Defines shared Pydantic data models, typing.Protocols, error codes, and constants.
+"""
+
+from contracts.models import (
+    ApplyMethod,
+    CVArtifact,
+    EmailDraft,
+    ExtractedRole,
+    ExtractionResult,
+    InboxItem,
+    IncomingMessage,
+    JobCard,
+    PostType,
+    Profile,
+    SendResult,
+    Settings,
+    Status,
+    TailorPlan,
+    Tier,
+    WalkinDetails,
+    WorkMode,
+)
+from contracts.protocols import (
+    CalendarExporter,
+    CVBuilder,
+    Deduper,
+    Extractor,
+    InboxRepo,
+    IntakeSource,
+    JobRepo,
+    LinkFetcher,
+    LLMProvider,
+    Mailer,
+    PreFilter,
+    Queue,
+    RulesEngine,
+    Scorer,
+)
+
+__version__ = "1"
+
+__all__ = [
+    "ApplyMethod",
+    "CVArtifact",
+    "EmailDraft",
+    "ExtractedRole",
+    "ExtractionResult",
+    "InboxItem",
+    "IncomingMessage",
+    "JobCard",
+    "PostType",
+    "Profile",
+    "SendResult",
+    "Settings",
+    "Status",
+    "TailorPlan",
+    "Tier",
+    "WalkinDetails",
+    "WorkMode",
+    "CalendarExporter",
+    "CVBuilder",
+    "Deduper",
+    "Extractor",
+    "InboxRepo",
+    "IntakeSource",
+    "JobRepo",
+    "LinkFetcher",
+    "LLMProvider",
+    "Mailer",
+    "PreFilter",
+    "Queue",
+    "RulesEngine",
+    "Scorer",
+]
