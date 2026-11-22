@@ -4,21 +4,46 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 from app.db.crypto import TokenEncryption
 from app.mail.drafting import generate_email_draft
 from contracts.models import CVArtifact, EmailDraft, ExtractedRole, JobCard, Profile, SendResult
 from contracts.protocols import Mailer
 
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+PLACEHOLDER_DOMAINS = {"example.com", "placeholder.com", "test.com", "domain.com", "yopmail.com"}
+
+
+def validate_recipient_and_subject(recipient: str, subject: str) -> Optional[str]:
+    """Validates email recipient format, anti-injection, and non-placeholder rules."""
+    if not recipient or not recipient.strip():
+        return "Recipient email address is missing."
+    rec = recipient.strip()
+    if "\r" in rec or "\n" in rec or "," in rec or ";" in rec:
+        return "Recipient email contains invalid characters or line breaks (header injection protection)."
+    if not EMAIL_REGEX.match(rec):
+        return f"Invalid email format for recipient: {rec}"
+    domain = rec.split("@")[-1].lower()
+    if domain in PLACEHOLDER_DOMAINS or "placeholder" in rec.lower() or "todo" in rec.lower():
+        return f"Recipient email cannot be a placeholder or example address: {rec}"
+
+    if not subject or not subject.strip():
+        return "Email subject cannot be empty."
+    if "\r" in subject or "\n" in subject:
+        return "Email subject contains newline characters (header injection protection)."
+    return None
+
 
 class ProductionMailer:
     """Safely dispatches job application emails via Gmail API or SMTP with dry-run protection."""
 
-    def __init__(self, crypto: Optional[TokenEncryption] = None):
+    def __init__(self, crypto: Optional[TokenEncryption] = None, job_repo: Optional[Any] = None):
         self.crypto = crypto or TokenEncryption()
+        self.job_repo = job_repo
         self.send_enabled = os.getenv("SEND_ENABLED", "false").lower() == "true"
         self.daily_cap = int(os.getenv("DAILY_SEND_CAP", "25"))
         self.min_gap_seconds = int(os.getenv("MIN_GAP_SECONDS", "60"))
@@ -42,14 +67,39 @@ class ProductionMailer:
     ) -> SendResult:
         now = datetime.now(timezone.utc)
 
-        # 1. Daily cap check
+        # 1. Validate Recipient and Subject (Anti-injection & Placeholder guard)
+        validation_err = validate_recipient_and_subject(draft.recipient, draft.subject)
+        if validation_err:
+            return SendResult(success=False, error=validation_err)
+
+        # 2. Never send without CV file on disk (P0 requirement)
+        if not cv.pdf_path or not Path(cv.pdf_path).exists():
+            return SendResult(
+                success=False,
+                error=f"CV PDF file missing on disk ({cv.pdf_path}). Applications cannot be dispatched without a verified CV.",
+            )
+
+        # 3. 14-day duplicate application guard
+        if self.job_repo and hasattr(self.job_repo, "check_recent_send"):
+            try:
+                is_recent = await self.job_repo.check_recent_send(job.role.company, draft.recipient, days=14)
+                if is_recent:
+                    return SendResult(
+                        success=False,
+                        error=f"14-day duplicate guard: An application was already dispatched to {job.role.company} / {draft.recipient} within the last 14 days.",
+                    )
+            except Exception as e:
+                # Log and continue if check fails
+                pass
+
+        # 4. Daily cap check
         if self._sent_today >= self.daily_cap:
             return SendResult(
                 success=False,
                 error=f"Daily send cap of {self.daily_cap} applications reached. Sending paused until next day.",
             )
 
-        # 2. Min gap rate limit check
+        # 5. Min gap rate limit check
         if self._last_sent_time:
             elapsed = (now - self._last_sent_time).total_seconds()
             if elapsed < self.min_gap_seconds:
@@ -58,7 +108,7 @@ class ProductionMailer:
                     error=f"Rate limit: Must wait {self.min_gap_seconds - int(elapsed)}s between sends.",
                 )
 
-        # 3. Dry-run mode check
+        # 6. Dry-run mode check
         if not self.send_enabled:
             # Simulate dispatch
             self._sent_today += 1
@@ -70,7 +120,7 @@ class ProductionMailer:
                 sent_at=now,
             )
 
-        # 4. Live sending (Gmail API or SMTP)
+        # 7. Live sending (Gmail API or SMTP)
         try:
             if self.mail_backend == "smtp":
                 return await self._send_via_smtp(draft, cv)

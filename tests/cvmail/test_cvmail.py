@@ -169,13 +169,40 @@ def test_email_drafting_and_mailer(profile):
         assert draft_f2.subject == "MTO - Dot Net Developer"
 
         # Mailer dry-run dispatch
-        mailer = ProductionMailer()
-        job = JobCard(id="job_f1", role=role_f1, tier=Tier.STRONG)
-        cv = CVArtifact(id="cv_1", job_id="job_f1", pdf_path="test.pdf")
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            f.write(b"%PDF-1.4 dummy cv content")
+            dummy_pdf = f.name
 
-        result = await mailer.send_application(job, draft_f1, cv)
-        assert result.success
-        assert "dry_run" in (result.message_id or "")
+        try:
+            mailer = ProductionMailer()
+            job = JobCard(id="job_f1", role=role_f1, tier=Tier.STRONG)
+            cv = CVArtifact(id="cv_1", job_id="job_f1", pdf_path=dummy_pdf)
+
+            result = await mailer.send_application(job, draft_f1, cv)
+            assert result.success
+            assert "dry_run" in (result.message_id or "")
+
+            # 1. Missing CV file fails
+            missing_cv = CVArtifact(id="cv_missing", job_id="job_f1", pdf_path="nonexistent_cv.pdf")
+            res_missing = await mailer.send_application(job, draft_f1, missing_cv)
+            assert not res_missing.success
+            assert "missing on disk" in res_missing.error.lower()
+
+            # 2. Invalid recipient fails
+            bad_draft = draft_f1.model_copy(update={"recipient": "not-an-email"})
+            res_bad_email = await mailer.send_application(job, bad_draft, cv)
+            assert not res_bad_email.success
+            assert "invalid email format" in res_bad_email.error.lower()
+
+            # 3. Header injection in subject fails
+            injected_draft = draft_f1.model_copy(update={"subject": "Injected\r\nBcc: evil@attacker.com"})
+            res_inj = await mailer.send_application(job, injected_draft, cv)
+            assert not res_inj.success
+            assert "newline" in res_inj.error.lower()
+
+        finally:
+            if os.path.exists(dummy_pdf):
+                os.remove(dummy_pdf)
 
     asyncio.run(_test())
 

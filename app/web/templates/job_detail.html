@@ -111,9 +111,32 @@
 </div>
 
 <script>
+async function saveDraft() {
+  const recipient = document.getElementById("draft-recipient").value;
+  const subject = document.getElementById("draft-subject").value;
+  const body = document.getElementById("draft-body").value;
+  try {
+    const res = await fetch(`/api/jobs/{{ vm.job.id }}/draft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient, subject, body }),
+    });
+    if (res.ok) {
+      alert("Draft saved successfully.");
+    } else {
+      const d = await res.json();
+      alert("Error saving draft: " + (d.detail || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Network error: " + err.message);
+  }
+}
+
 async function approveAndSend() {
   const recipient = document.getElementById("draft-recipient").value;
   const subject = document.getElementById("draft-subject").value;
+  const body = document.getElementById("draft-body").value;
+
   if (!confirm(`Are you sure you want to dispatch this email to:\n${recipient}\n\nSubject: ${subject}`)) {
     return;
   }
@@ -122,6 +145,13 @@ async function approveAndSend() {
   btn.disabled = true;
 
   try {
+    // Save draft first
+    await fetch(`/api/jobs/{{ vm.job.id }}/draft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient, subject, body }),
+    });
+
     const res = await fetch(`/api/jobs/{{ vm.job.id }}/approve-send`, { method: "POST" });
     if (res.ok) {
       alert("Application sent successfully!");
@@ -137,15 +167,6 @@ async function approveAndSend() {
     btn.innerText = "Approve & Send via Gmail";
     btn.disabled = false;
   }
-}
-
-async function markManual() {
-  await fetch(`/api/jobs/{{ vm.job.id }}/mark-manual`, { method: "POST" });
-  window.location.href = "/";
-}
-
-async function saveDraft() {
-  alert("Draft saved.");
 }
 </script>
 {% endblock %}

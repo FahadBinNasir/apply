@@ -1,13 +1,16 @@
 from __future__ import annotations
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
-from contracts.models import InboxItem, IncomingMessage, JobCard, Tier
+from typing import Any, Dict, List, Optional
+from contracts.models import CVArtifact, EmailDraft, InboxItem, IncomingMessage, JobCard, Tier
 from contracts.protocols import InboxRepo, JobRepo
 
 
 class FakeJobRepo:
     def __init__(self):
         self.jobs: Dict[str, JobCard] = {}
+        self._drafts: Dict[str, EmailDraft] = {}
+        self._cvs: Dict[str, CVArtifact] = {}
+        self._sends: List[Dict[str, Any]] = []
 
     async def save(self, job: JobCard) -> JobCard:
         job.updated_at = datetime.now(timezone.utc)
@@ -46,6 +49,59 @@ class FakeJobRepo:
             self.jobs[job_id].status = status  # type: ignore
             self.jobs[job_id].updated_at = datetime.now(timezone.utc)
             return True
+        return False
+
+    async def save_draft(self, draft: EmailDraft) -> EmailDraft:
+        self._drafts[draft.job_id] = draft
+        return draft
+
+    async def get_draft(self, job_id: str) -> Optional[EmailDraft]:
+        return self._drafts.get(job_id)
+
+    async def save_cv(self, cv: CVArtifact) -> CVArtifact:
+        self._cvs[cv.job_id] = cv
+        return cv
+
+    async def get_cv(self, job_id: str) -> Optional[CVArtifact]:
+        return self._cvs.get(job_id)
+
+    async def record_send(
+        self,
+        job_id: str,
+        recipient: str,
+        subject: str,
+        status: str = "sent",
+        gmail_message_id: Optional[str] = None,
+        error: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        company = "Unknown"
+        title = "Position"
+        if job_id in self.jobs:
+            company = self.jobs[job_id].role.company
+            title = self.jobs[job_id].role.title
+        record = {
+            "id": f"send_{len(self._sends) + 1}",
+            "job_id": job_id,
+            "company": company,
+            "title": title,
+            "recipient": recipient,
+            "subject": subject,
+            "gmail_message_id": gmail_message_id,
+            "status": status,
+            "error": error,
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._sends.append(record)
+        return record
+
+    async def get_sends(self, limit: int = 50) -> List[Dict[str, Any]]:
+        return list(reversed(self._sends))[:limit]
+
+    async def check_recent_send(self, company: str, email: str, days: int = 14) -> bool:
+        for s in self._sends:
+            if s.get("status") in ["sent", "dry_run"]:
+                if s.get("recipient", "").lower() == email.lower() or s.get("company", "").lower() == company.lower():
+                    return True
         return False
 
 

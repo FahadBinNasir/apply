@@ -40,7 +40,23 @@ class ProductionRulesEngine:
             now = now.replace(tzinfo=None)
 
         # -------------------------------------------------------------
-        # 1. DEADLINE CHECK
+        # 1. SENIORITY & SENIOR EXPERIENCE CHECK (Hard filter)
+        # -------------------------------------------------------------
+        title_lower = role.title.lower()
+        if re.search(r"\b(senior|sr\.?|principal|architect|lead|head\s+of|director|vp)\b", title_lower):
+            return Tier.SKIPPED, [f"Senior role / experience requirement in title: '{role.title}'"], 0.0, [], ["Senior role exceeding experience bounds"]
+        if re.search(r"\bmanager\b", title_lower) and not re.search(r"\b(management\s+trainee|mto)\b", title_lower):
+            return Tier.SKIPPED, [f"Manager role exceeding experience bounds: '{role.title}'"], 0.0, [], ["Manager role"]
+
+        # -------------------------------------------------------------
+        # 2. PAY CHECK (Hard filter)
+        # -------------------------------------------------------------
+        text_all = f"{role.title} {role.field} {role.notes or ''}".lower()
+        if re.search(r"\b(unpaid|volunteer|commission[\s-]only|stipend[\s-]only|unpaid[\s-]internship)\b", text_all):
+            return Tier.SKIPPED, ["Unpaid or volunteer position"], 0.0, [], ["Unpaid / volunteer"]
+
+        # -------------------------------------------------------------
+        # 3. DEADLINE CHECK
         # -------------------------------------------------------------
         if role.deadline:
             try:
@@ -57,20 +73,29 @@ class ProductionRulesEngine:
                 pass
 
         # -------------------------------------------------------------
-        # 2. AVOID FIELDS CHECK (Hard filter)
+        # 4. AVOID FIELDS CHECK (Hard filter)
         # -------------------------------------------------------------
         field_text = f"{role.field} {role.title} {role.notes or ''}".lower()
+
+        # Explicit non-tech engineering and non-tech professions
+        if re.search(r"\b(civil|mechanical|chemical|petroleum|electrical)\s+enginee(r|ring)\b", field_text) and not any(k in field_text for k in ["embedded", "firmware", "iot"]):
+            return Tier.SKIPPED, ["Field is non-software engineering (civil/mechanical/electrical)"], 0.0, [], ["Non-software engineering"]
+        if re.search(r"\b(customer\s+support|customer\s+service|call\s+center|telecalling|telesales|bpo)\b", field_text):
+            return Tier.SKIPPED, ["Customer support / call center role"], 0.0, [], ["Customer support"]
+        if re.search(r"\b(graphic\s+designer?|graphic\s+design|ui[\s/]ux\s+designer?|designer|figma\s+designer)\b", field_text) and not any(k in field_text for k in ["developer", "frontend", "software"]):
+            return Tier.SKIPPED, ["Design / Graphic design role (not software development)"], 0.0, [], ["Design role"]
+        if re.search(r"\b(accountant|accounts\s+officer|finance\s+executive|audit\s+associate)\b", field_text):
+            return Tier.SKIPPED, ["Finance / Accounting role"], 0.0, [], ["Accounting / Finance"]
+
         for avoid in profile.matching.avoid_fields:
-            # Check keywords
             avoid_tokens = [tok.strip().lower() for tok in avoid.split(",") if tok.strip()]
             for tok in avoid_tokens:
-                pattern = r"\b" + re.escape(tok) + r"\b"
+                pattern = r"\b" + re.escape(tok) + r"(er|ing|s)?\b"
                 if re.search(pattern, field_text):
-                    # Check exception: tech roles in non-tech companies
                     return Tier.SKIPPED, [f"Field or role matches avoid list: '{tok}'"], 0.0, [], [f"Avoid category: {avoid}"]
 
         # -------------------------------------------------------------
-        # 3. EDUCATION GATES (Hard filter)
+        # 5. EDUCATION GATES (Hard filter)
         # -------------------------------------------------------------
         edu_text = f"{role.education or ''} {role.title} {role.notes or ''}".lower()
         if re.search(r"\b(ms|m\.?s|mphil|phd|master'?s?)\s+(required|in\s+cs|in\s+se)\b", edu_text):
@@ -132,7 +157,7 @@ class ProductionRulesEngine:
         min_exp = role.experience_min_years or 0.0
         max_exp = role.experience_max_years or min_exp
 
-        if min_exp > profile.matching.experience.skip_above_years:
+        if min_exp >= profile.matching.experience.skip_above_years:
             return Tier.SKIPPED, [f"Experience required ({min_exp} yrs) exceeds maximum limit ({profile.matching.experience.skip_above_years} yrs)"], 0.0, [], [f"High experience requirement: {min_exp} yrs"]
 
         is_stretch_exp = False
@@ -150,21 +175,51 @@ class ProductionRulesEngine:
         # -------------------------------------------------------------
         is_target_field = False
         is_stretch_field = False
-        role_field_lower = role.field.lower()
+        is_missing_field = False
+        role_field_lower = (role.field or "").strip().lower()
+        title_lower = role.title.lower()
 
-        # Check stretch fields: IT infrastructure / storage / networking
-        if any(s in role_field_lower for s in ["infrastructure", "storage", "compute", "networking", "data center"]):
+        CURATED_TECH_KEYWORDS = [
+            "software engineer", "software developer", "backend", "full-stack", "full stack",
+            "frontend", "web developer", "devops", "cloud engineer", "cloud", "qa engineer",
+            "sqa", "test automation", "quality assurance", "ai engineer", "machine learning",
+            "data scientist", "data science", "data analyst", "deep learning", "flutter",
+            "mobile developer", "ios developer", "android developer", ".net", "dotnet",
+            "c# developer", "embedded", "firmware", "iot", "systems engineer", "cyber security"
+        ]
+
+        # Check if field is missing or empty
+        if not role_field_lower or role_field_lower == "unknown":
+            is_missing_field = True
+            reasons.append("Field unconfirmed or missing; classified as STRETCH")
+            score -= 10.0
+        elif any(s in role_field_lower for s in ["infrastructure", "storage", "compute", "networking", "data center"]):
             is_stretch_field = True
             reasons.append("Field is IT infrastructure / storage & compute (stretch category)")
             score += 5.0
         else:
-            for tf in profile.matching.target_fields:
-                tf_tokens = [t.strip().lower() for t in tf.replace("/", " ").replace("-", " ").split() if len(t.strip()) > 1]
-                if any(tok in role_field_lower or tok in role.title.lower() for tok in tf_tokens):
-                    is_target_field = True
-                    matches.append(f"Target field match: {tf}")
-                    score += 20.0
-                    break
+            # Curated tech match: check against specific multi-word tokens or tech keywords
+            has_curated_match = any(
+                re.search(r"\b" + re.escape(kw) + r"\b", f"{role_field_lower} {title_lower}")
+                for kw in CURATED_TECH_KEYWORDS
+            )
+            if has_curated_match:
+                is_target_field = True
+                matches.append(f"Target field match: {role.field}")
+                score += 20.0
+            else:
+                for tf in profile.matching.target_fields:
+                    tf_clean = tf.lower().strip()
+                    if tf_clean in role_field_lower or tf_clean in title_lower:
+                        is_target_field = True
+                        matches.append(f"Target field match: {tf}")
+                        score += 20.0
+                        break
+
+            if not is_target_field:
+                is_missing_field = True
+                reasons.append(f"Field '{role.field}' not in target list; requires manual review")
+                score -= 10.0
 
         # Check skill overlap
         profile_skills_flat = [
@@ -188,6 +243,9 @@ class ProductionRulesEngine:
             matches.append(f"Skills matched: {', '.join(matched_skills[:4])}")
             score += min(20.0, len(matched_skills) * 4.0)
 
+        # Clamp score between 0 and 100
+        score = min(100.0, max(0.0, score))
+
         # -------------------------------------------------------------
         # 9. SPECIAL TIER ASSIGNMENT
         # -------------------------------------------------------------
@@ -206,12 +264,16 @@ class ProductionRulesEngine:
                 reasons.append("External portal or link-only application")
             return Tier.MANUAL, reasons, score, matches, gaps
 
-        # Stretch conditions
-        if is_stretch_field or is_stretch_exp or has_gender_warning or (not is_karachi and not is_remote):
+        # Stretch conditions: missing/unconfirmed field, stretch field, stretch exp, gender warning, unknown location
+        if is_missing_field or is_stretch_field or is_stretch_exp or has_gender_warning or (not is_karachi and not is_remote):
+            if is_missing_field and not any("Field" in r for r in reasons):
+                reasons.append("Categorized as STRETCH due to unconfirmed field")
             if is_stretch_field:
                 reasons.append("Categorized as STRETCH due to infrastructure/support field")
             if is_stretch_exp:
-                reasons.append("Categorized as STRETCH due to 1-3 years experience requirement")
+                reasons.append("Categorized as STRETCH due to experience requirement")
+            if not is_karachi and not is_remote:
+                reasons.append("Categorized as STRETCH due to unknown location")
             return Tier.STRETCH, reasons, score, matches, gaps
 
         if score >= 70.0:

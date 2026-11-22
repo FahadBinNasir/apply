@@ -24,12 +24,13 @@ class WebhookIntakeHandler:
         self,
         payload: Dict[str, Any],
         raw_body: bytes,
-        signature: Optional[str],
-        timestamp: Optional[str],
+        signature: Optional[str] = None,
+        timestamp: Optional[str] = None,
+        waha_hmac: Optional[str] = None,
     ) -> Tuple[bool, str, Optional[str]]:
         # 1. Verify HMAC Signature and timestamp
         is_valid, sig_err = verify_webhook_signature(
-            raw_body, self.webhook_secret, signature, timestamp
+            raw_body, self.webhook_secret, signature, timestamp, waha_hmac_header=waha_hmac
         )
         if not is_valid:
             return False, f"Auth Error: {sig_err}", None

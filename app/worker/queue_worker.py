@@ -3,6 +3,7 @@ import asyncio
 import logging
 from typing import Optional
 
+from app.llm.provider import LLMUnavailableError
 from app.worker.pipeline import PipelineEngine
 from contracts.models import IncomingMessage
 from contracts.protocols import Queue
@@ -32,6 +33,12 @@ class QueueWorker:
                 msg = IncomingMessage(**msg_data)
                 await self.pipeline.process_message(msg)
             await self.queue.ack(item_id)
+            return True
+        except LLMUnavailableError as e:
+            logger.warning("Queue worker item %s waiting for quota: %s", item_id, e)
+            if hasattr(self.pipeline, "inbox_repo") and hasattr(self.pipeline.inbox_repo, "update_status"):
+                await self.pipeline.inbox_repo.update_status(item_id, "waiting_for_quota")
+            await self.queue.nack(item_id, f"waiting_for_quota: {e}", retry_after_sec=300)
             return True
         except Exception as e:
             logger.error("Queue worker job %s failed: %s", item_id, e)

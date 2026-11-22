@@ -104,8 +104,16 @@ class PipelineEngine:
 
         updated_msg = message.model_copy(update={"raw_text": raw_text})
 
-        # Stage 3: Extraction
-        extraction = await self.extractor.extract(updated_msg)
+        # Stage 3: Extraction (support poster images)
+        image_bytes = None
+        mime_type = message.media_mime
+        if message.media_path and Path(message.media_path).exists():
+            try:
+                image_bytes = Path(message.media_path).read_bytes()
+            except Exception as e:
+                logger.warning("Failed to read media file %s: %s", message.media_path, e)
+
+        extraction = await self.extractor.extract(updated_msg, image_bytes=image_bytes, mime_type=mime_type)
         if not extraction.is_job or not extraction.roles:
             await self.inbox_repo.log_noise(message, "no_roles_extracted")
             return []
@@ -154,10 +162,12 @@ class PipelineEngine:
                 plan = await self.cv_builder.plan_tailoring(role, self.profile)
                 cv = await self.cv_builder.build_cv(role, self.profile, plan)
                 draft = self.mailer.create_draft(role, self.profile, role.exact_subject)
-                # Attach to card
-                card.id = f"job_{role.company.lower().replace(' ', '_')[:16]}_{role.title.lower().replace(' ', '_')[:16]}"
                 cv.job_id = card.id
                 draft.job_id = card.id
+                if hasattr(self.job_repo, "save_cv"):
+                    await self.job_repo.save_cv(cv)
+                if hasattr(self.job_repo, "save_draft"):
+                    await self.job_repo.save_draft(draft)
 
             await self.job_repo.save(card)
             existing_jobs.append(card)

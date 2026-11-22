@@ -43,7 +43,7 @@ def _dict_to_role(d: Dict[str, Any], from_image_flag: bool = False) -> Extracted
     return ExtractedRole(
         title=d.get("title") or "Unknown Role",
         company=d.get("company") or "Unknown Company",
-        field=d.get("field") or "software engineering",
+        field=d.get("field") or "",
         location_text=d.get("location_text") or "",
         work_mode=mode,
         city=d.get("city") or "",
@@ -63,7 +63,7 @@ def _dict_to_role(d: Dict[str, Any], from_image_flag: bool = False) -> Extracted
         exact_subject=d.get("exact_subject"),
         from_image=from_image_flag or bool(d.get("from_image", False)),
         walkin=walkin,
-        fresh_grad_ok=bool(d.get("fresh_grad_ok", True)),
+        fresh_grad_ok=bool(d.get("fresh_grad_ok", False)),
         notes=d.get("notes"),
     )
 
@@ -100,7 +100,7 @@ class ProductionExtractor:
             )
 
             try:
-                is_job = bool(raw_json.get("is_job", True))
+                is_job = bool(raw_json.get("is_job", False))
                 post_type_str = (raw_json.get("post_type") or "job").lower()
                 post_type = PostType.JOB
                 for pt in PostType:

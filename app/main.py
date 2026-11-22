@@ -45,6 +45,7 @@ from contracts.fakes import (
 )
 from contracts.models import (
     Profile,
+    ProfileEducation,
     ProfileMatching,
     ProfileMatchingExperience,
     ProfilePersonal,
@@ -69,6 +70,23 @@ def load_profile() -> Profile:
     with open(profile_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
+    def clean_val(v):
+        if isinstance(v, str) and v.startswith("TODO"):
+            return None
+        return v
+
+    personal_data = data.get("personal", {})
+    status_data = data.get("status", {})
+    matching_data = data.get("matching", {})
+    links_data = {
+        k: v for k, v in data.get("links", {}).items()
+        if not str(v).startswith("TODO")
+    }
+
+    gender_val = clean_val(personal_data.get("gender"))
+    night_shift_raw = personal_data.get("accepts_night_shift")
+    night_shift = bool(night_shift_raw) if not str(night_shift_raw).startswith("TODO") else False
+
     projects = [
         ProfileProject(
             id=p["id"],
@@ -82,28 +100,60 @@ def load_profile() -> Profile:
         for p in data.get("projects", [])
     ]
 
+    edu = [
+        ProfileEducation(
+            degree=e["degree"],
+            school=e["school"],
+            years=e.get("years", ""),
+            note=clean_val(e.get("note")),
+        )
+        for e in data.get("education", [])
+    ]
+
+    exp = matching_data.get("experience", {})
+
     return Profile(
         name=data["name"],
         email=data["email"],
         phone=data["phone"],
         location=data["location"],
-        links=data.get("links", {}),
-        personal=ProfilePersonal(languages=data["personal"].get("languages", [])),
-        status=ProfileStatus(degree=data["status"]["degree"], university=data["status"]["university"], semester=7),
+        links=links_data,
+        personal=ProfilePersonal(
+            gender=gender_val,
+            accepts_night_shift=night_shift,
+            languages=personal_data.get("languages", []),
+        ),
+        status=ProfileStatus(
+            degree=status_data.get("degree", ""),
+            university=status_data.get("university", ""),
+            semester=int(status_data.get("semester", 7)),
+            expected_graduation=clean_val(status_data.get("expected_graduation")),
+            available_as=status_data.get("available_as", []),
+        ),
         matching=ProfileMatching(
-            hard_locations=data["matching"]["hard_locations"],
-            target_fields=data["matching"]["target_fields"],
-            avoid_fields=data["matching"]["avoid_fields"],
-            experience=ProfileMatchingExperience(comfortable_max_years=2.0, stretch_max_years=3.0, skip_above_years=3.0),
+            hard_locations=matching_data.get("hard_locations", []),
+            remote_must_accept_pakistan=matching_data.get("remote_must_accept_pakistan", True),
+            target_fields=matching_data.get("target_fields", []),
+            avoid_fields=matching_data.get("avoid_fields", []),
+            experience=ProfileMatchingExperience(
+                comfortable_max_years=float(exp.get("comfortable_max_years", 2.0)),
+                stretch_max_years=float(exp.get("stretch_max_years", 3.0)),
+                skip_above_years=float(exp.get("skip_above_years", 3.0)),
+            ),
+            notes=matching_data.get("notes"),
         ),
         skills=ProfileSkills(
-            languages=data["skills"]["languages"],
-            ai_ml=data["skills"]["ai_ml"],
-            web_backend=data["skills"]["web_backend"],
-            mobile_tools=data["skills"]["mobile_tools"],
-            concepts=data["skills"]["concepts"],
+            languages=data["skills"].get("languages", []),
+            ai_ml=data["skills"].get("ai_ml", []),
+            web_backend=data["skills"].get("web_backend", []),
+            mobile_tools=data["skills"].get("mobile_tools", []),
+            concepts=data["skills"].get("concepts", []),
         ),
+        education=edu,
         projects=projects,
+        courses=data.get("courses", []),
+        experience=data.get("experience", []),
+        achievements=data.get("achievements", []),
     )
 
 
@@ -122,6 +172,24 @@ class SystemClock:
 async def lifespan(app: FastAPI):
     # Dependency Injection Initialization
     use_fakes = os.getenv("USE_FAKES", "false").lower() == "true"
+    is_prod = os.getenv("APP_ENV", "").lower() == "production"
+    if is_prod and not use_fakes:
+        pwd = os.getenv("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD_HASH")
+        sec = os.getenv("SESSION_SECRET")
+        wh_sec = os.getenv("WEBHOOK_SECRET")
+        if not pwd:
+            raise RuntimeError(
+                "Production startup failed: DASHBOARD_PASSWORD or DASHBOARD_PASSWORD_HASH must be configured."
+            )
+        if not sec or sec == "dev_session_secret_change_in_production":
+            raise RuntimeError(
+                "Production startup failed: SESSION_SECRET must be set to a secure secret."
+            )
+        if not wh_sec:
+            raise RuntimeError(
+                "Production startup failed: WEBHOOK_SECRET must be configured."
+            )
+
     profile = load_profile()
     clock = SystemClock()
 
@@ -138,7 +206,7 @@ async def lifespan(app: FastAPI):
         scorer = ProductionScorer()
         deduper = ProductionDeduper()
         cv_builder = ProductionCVBuilder()
-        mailer = ProductionMailer()
+        mailer = ProductionMailer(job_repo=job_repo)
     else:
         from sqlalchemy.orm import sessionmaker
         engine = init_db()
@@ -156,7 +224,7 @@ async def lifespan(app: FastAPI):
         scorer = ProductionScorer()
         deduper = ProductionDeduper()
         cv_builder = ProductionCVBuilder()
-        mailer = ProductionMailer()
+        mailer = ProductionMailer(job_repo=job_repo)
 
     webhook_handler = WebhookIntakeHandler(inbox_repo, queue)
 

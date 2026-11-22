@@ -4,7 +4,7 @@ import time
 import pytest
 
 from app.intake.handler import WebhookIntakeHandler
-from app.intake.security import sign_payload, verify_webhook_signature
+from app.intake.security import sign_payload, sign_waha_payload, verify_webhook_signature
 from app.intake.waha import parse_waha_message
 from contracts.fakes import FakeInboxRepo, FakeQueue
 
@@ -30,6 +30,21 @@ def test_hmac_and_anti_replay():
     is_valid, err = verify_webhook_signature(payload, secret, old_sig, str(old_ts))
     assert not is_valid
     assert "Timestamp drift exceeded" in err
+
+    # WAHA native HMAC test (raw body digest)
+    waha_sig = sign_waha_payload(payload, secret)
+    is_valid_waha, err_waha = verify_webhook_signature(payload, secret, waha_hmac_header=waha_sig)
+    assert is_valid_waha
+    assert err_waha is None
+
+    # WAHA sha256= prefix support
+    is_valid_prefix, _ = verify_webhook_signature(payload, secret, waha_hmac_header=f"sha256={waha_sig}")
+    assert is_valid_prefix
+
+    # Bad WAHA HMAC
+    is_valid_bad, err_bad = verify_webhook_signature(payload, secret, waha_hmac_header="sha256=deadbeef")
+    assert not is_valid_bad
+    assert "Invalid WAHA HMAC" in err_bad
 
 
 def test_waha_parser():

@@ -215,6 +215,159 @@ class SQLAlchemyJobRepo:
             session.commit()
             return True
 
+    async def save_draft(self, draft: EmailDraft) -> EmailDraft:
+        with self.session_factory() as session:
+            stmt = select(DraftModel).where(DraftModel.job_id == draft.job_id)
+            existing = session.scalar(stmt)
+            if existing:
+                existing.recipient = draft.recipient
+                existing.subject = draft.subject
+                existing.body = draft.body
+                existing.is_customized = draft.is_customized
+                existing.updated_at = _utc_now()
+            else:
+                new_draft = DraftModel(
+                    id=draft.id or f"draft_{uuid.uuid4().hex[:12]}",
+                    job_id=draft.job_id,
+                    recipient=draft.recipient,
+                    subject=draft.subject,
+                    body=draft.body,
+                    is_customized=draft.is_customized,
+                    created_at=_utc_now(),
+                    updated_at=_utc_now(),
+                )
+                session.add(new_draft)
+            session.commit()
+            return draft
+
+    async def get_draft(self, job_id: str) -> Optional[EmailDraft]:
+        with self.session_factory() as session:
+            stmt = select(DraftModel).where(DraftModel.job_id == job_id)
+            m = session.scalar(stmt)
+            if not m:
+                return None
+            return EmailDraft(
+                id=m.id,
+                job_id=m.job_id,
+                recipient=m.recipient,
+                subject=m.subject,
+                body=m.body,
+                is_customized=m.is_customized,
+            )
+
+    async def save_cv(self, cv: CVArtifact) -> CVArtifact:
+        with self.session_factory() as session:
+            stmt = select(CVArtifactModel).where(CVArtifactModel.job_id == cv.job_id)
+            existing = session.scalar(stmt)
+            if existing:
+                existing.pdf_path = cv.pdf_path
+                existing.preview_png_paths = cv.preview_png_paths
+                existing.passes_verifier = cv.passes_verifier
+                existing.verifier_notes = cv.verifier_notes
+            else:
+                new_cv = CVArtifactModel(
+                    id=cv.id or f"cv_{uuid.uuid4().hex[:12]}",
+                    job_id=cv.job_id,
+                    pdf_path=cv.pdf_path,
+                    preview_png_paths=cv.preview_png_paths,
+                    passes_verifier=cv.passes_verifier,
+                    verifier_notes=cv.verifier_notes,
+                    generated_at=_utc_now(),
+                )
+                session.add(new_cv)
+            session.commit()
+            return cv
+
+    async def get_cv(self, job_id: str) -> Optional[CVArtifact]:
+        with self.session_factory() as session:
+            stmt = select(CVArtifactModel).where(CVArtifactModel.job_id == job_id)
+            m = session.scalar(stmt)
+            if not m:
+                return None
+            return CVArtifact(
+                id=m.id,
+                job_id=m.job_id,
+                pdf_path=m.pdf_path,
+                preview_png_paths=m.preview_png_paths or [],
+                passes_verifier=m.passes_verifier,
+                verifier_notes=m.verifier_notes,
+            )
+
+    async def record_send(
+        self,
+        job_id: str,
+        recipient: str,
+        subject: str,
+        status: str = "sent",
+        gmail_message_id: Optional[str] = None,
+        error: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        with self.session_factory() as session:
+            send_id = f"send_{uuid.uuid4().hex[:12]}"
+            model = SendModel(
+                id=send_id,
+                job_id=job_id,
+                recipient=recipient,
+                subject=subject,
+                gmail_message_id=gmail_message_id,
+                status=status,
+                error=error,
+                sent_at=_utc_now(),
+            )
+            session.add(model)
+            session.commit()
+            return {
+                "id": model.id,
+                "job_id": model.job_id,
+                "recipient": model.recipient,
+                "subject": model.subject,
+                "gmail_message_id": model.gmail_message_id,
+                "status": model.status,
+                "error": model.error,
+                "sent_at": model.sent_at.isoformat(),
+            }
+
+    async def get_sends(self, limit: int = 50) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            stmt = (
+                select(SendModel, JobModel.company, JobModel.title)
+                .outerjoin(JobModel, SendModel.job_id == JobModel.id)
+                .order_by(desc(SendModel.sent_at))
+                .limit(limit)
+            )
+            rows = session.execute(stmt).all()
+            res = []
+            for send_m, company, title in rows:
+                res.append({
+                    "id": send_m.id,
+                    "job_id": send_m.job_id,
+                    "company": company or "Unknown Employer",
+                    "title": title or "Position",
+                    "recipient": send_m.recipient,
+                    "subject": send_m.subject,
+                    "gmail_message_id": send_m.gmail_message_id,
+                    "status": send_m.status,
+                    "error": send_m.error,
+                    "sent_at": send_m.sent_at.isoformat() if send_m.sent_at else _utc_now().isoformat(),
+                })
+            return res
+
+    async def check_recent_send(self, company: str, email: str, days: int = 14) -> bool:
+        from datetime import timedelta
+        cutoff = _utc_now() - timedelta(days=days)
+        with self.session_factory() as session:
+            stmt = (
+                select(SendModel)
+                .outerjoin(JobModel, SendModel.job_id == JobModel.id)
+                .where(
+                    SendModel.sent_at >= cutoff,
+                    SendModel.status.in_(["sent", "dry_run"]),
+                    (SendModel.recipient.ilike(email.strip())) | (JobModel.company.ilike(company.strip())),
+                )
+            )
+            found = session.scalars(stmt).first()
+            return found is not None
+
 
 class SQLAlchemyInboxRepo:
     def __init__(self, session_factory: sessionmaker):
@@ -260,6 +413,17 @@ class SQLAlchemyInboxRepo:
             )
             session.add(model)
             session.commit()
+
+    async def update_status(self, item_id: str, status: str) -> None:
+        with self.session_factory() as session:
+            m = session.get(InboxModel, item_id)
+            if not m:
+                # Try finding by source_id
+                stmt = select(InboxModel).where(InboxModel.source_id == item_id)
+                m = session.scalar(stmt)
+            if m:
+                m.status = status
+                session.commit()
 
     async def is_duplicate_message(self, message_hash: str) -> bool:
         if not message_hash:

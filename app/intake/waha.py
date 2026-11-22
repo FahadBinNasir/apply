@@ -12,6 +12,51 @@ from contracts.protocols import IntakeSource
 MEDIA_DIR = Path("app_data/media")
 
 
+def download_or_save_media(
+    source_id: str,
+    media_info: Dict[str, Any],
+    base_url: str = "",
+    api_key: str = "",
+) -> Optional[str]:
+    """Downloads or saves media locally from WAHA URL or base64 data payload."""
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    url = media_info.get("url")
+    data_b64 = media_info.get("data")
+    raw_filename = media_info.get("filename") or "media.png"
+    clean_filename = "".join(c for c in raw_filename if c.isalnum() or c in "._-")
+    target_path = MEDIA_DIR / f"{source_id}_{clean_filename}"
+
+    if target_path.exists():
+        return str(target_path)
+
+    if data_b64:
+        try:
+            import base64
+            if "," in data_b64:
+                data_b64 = data_b64.split(",", 1)[1]
+            target_path.write_bytes(base64.b64decode(data_b64))
+            return str(target_path)
+        except Exception:
+            pass
+
+    if url:
+        if url.startswith("http://") or url.startswith("https://") or url.startswith("/"):
+            fetch_url = url if url.startswith("http") else f"{base_url.rstrip('/')}{url}"
+            try:
+                headers = {"X-Api-Key": api_key} if api_key else {}
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.get(fetch_url, headers=headers)
+                    if resp.status_code == 200:
+                        target_path.write_bytes(resp.content)
+                        return str(target_path)
+            except Exception:
+                pass
+        elif Path(url).exists():
+            return str(Path(url).resolve())
+
+    return None
+
+
 def parse_waha_message(payload: Dict[str, Any]) -> IncomingMessage:
     """Normalizes raw WAHA message event payload into IncomingMessage."""
     data = payload.get("payload") or payload
@@ -32,7 +77,10 @@ def parse_waha_message(payload: Dict[str, Any]) -> IncomingMessage:
     if data.get("hasMedia") and data.get("media"):
         m = data["media"]
         media_mime = m.get("mimetype")
-        if m.get("url"):
+        base_url = os.getenv("WAHA_BASE_URL", "http://whatsapp:3000")
+        api_key = os.getenv("WAHA_API_KEY", "")
+        media_path = download_or_save_media(source_id, m, base_url, api_key)
+        if not media_path and m.get("url"):
             media_path = m.get("url")
 
     # Content hash for deduplication

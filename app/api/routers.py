@@ -43,10 +43,21 @@ templates = Jinja2Templates(directory=str(templates_dir))
 
 
 def should_render_html(request: Request) -> bool:
+    if request.query_params.get("format") == "json":
+        return False
     accept = request.headers.get("accept", "")
     if "application/json" in accept and "text/html" not in accept:
         return False
     return True
+
+
+def get_client_ip(request: Request) -> str:
+    trust_proxy = os.getenv("TRUST_PROXY", "false").lower() == "true"
+    if trust_proxy:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def get_session_secret() -> str:
@@ -98,19 +109,23 @@ async def login_action(
     response: Response,
     password: str = Form(...),
 ):
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     is_locked, seconds_left = lockout_manager.is_locked_out(client_ip)
     if is_locked:
         raise HTTPException(status_code=429, detail=f"Too many failed attempts. Try again in {seconds_left}s.")
 
     expected_hash = os.getenv("DASHBOARD_PASSWORD_HASH", "")
+    plain_password = os.getenv("DASHBOARD_PASSWORD", "")
     secret = get_session_secret()
+    is_prod = os.getenv("APP_ENV", "").lower() == "production"
 
-    # If in dev or hash matches
     valid = False
     if expected_hash:
         valid = verify_password(password, expected_hash)
-    elif password == "devpassword" or password == "admin":
+    elif plain_password:
+        import hmac
+        valid = hmac.compare_digest(password, plain_password)
+    elif not is_prod and (password in ["devpassword", "admin"]):
         valid = True
 
     if not valid:
@@ -127,7 +142,7 @@ async def login_action(
         token,
         httponly=True,
         samesite="lax",
-        secure=os.getenv("APP_ENV") == "production",
+        secure=is_prod,
     )
     return res
 
@@ -157,9 +172,10 @@ async def inbox_dashboard(
 
     jobs = await job_repo.list_cards(limit=200)
     vm = build_inbox_viewmodel(jobs, active_tab=tier_enum)
+    csrf_token = generate_csrf_token(auth, get_session_secret())
 
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="index.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="index.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -175,16 +191,27 @@ async def job_detail(
         raise HTTPException(status_code=404, detail="Job not found")
 
     mailer = request.app.state.mailer
-    draft = mailer.create_draft(job.role, request.app.state.profile, job.role.exact_subject)
-    cv = CVArtifact(
-        id=f"cv_{job.id}",
-        job_id=job.id,
-        pdf_path=f"app_data/cvs/Fahad_Bin_Nasir_CV_{job.role.company}_{job.role.title}.pdf",
-    )
+    draft = await job_repo.get_draft(job.id) if hasattr(job_repo, "get_draft") else None
+    if not draft:
+        draft = mailer.create_draft(job.role, request.app.state.profile, job.role.exact_subject)
+        draft.job_id = job.id
+        if hasattr(job_repo, "save_draft"):
+            await job_repo.save_draft(draft)
+
+    cv = await job_repo.get_cv(job.id) if hasattr(job_repo, "get_cv") else None
+    if not cv:
+        cv_builder = request.app.state.cv_builder
+        plan = await cv_builder.plan_tailoring(job.role, request.app.state.profile)
+        cv = await cv_builder.build_cv(job.role, request.app.state.profile, plan)
+        cv.job_id = job.id
+        if hasattr(job_repo, "save_cv"):
+            await job_repo.save_cv(cv)
+
     vm = build_job_detail_viewmodel(job, draft=draft, cv=cv)
+    csrf_token = generate_csrf_token(auth, get_session_secret())
 
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="job_detail.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="job_detail.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -199,10 +226,16 @@ async def download_cv(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    cv_builder = request.app.state.cv_builder
-    plan = await cv_builder.plan_tailoring(job.role, request.app.state.profile)
-    artifact = await cv_builder.build_cv(job.role, request.app.state.profile, plan)
-    pdf_path = Path(artifact.pdf_path)
+    cv = await job_repo.get_cv(job.id) if hasattr(job_repo, "get_cv") else None
+    if not cv or not Path(cv.pdf_path).exists():
+        cv_builder = request.app.state.cv_builder
+        plan = await cv_builder.plan_tailoring(job.role, request.app.state.profile)
+        cv = await cv_builder.build_cv(job.role, request.app.state.profile, plan)
+        cv.job_id = job.id
+        if hasattr(job_repo, "save_cv"):
+            await job_repo.save_cv(cv)
+
+    pdf_path = Path(cv.pdf_path)
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="CV file not found on disk")
 
@@ -236,9 +269,13 @@ async def sent_log(
     request: Request,
     auth: str = Depends(require_auth),
 ):
-    vm = build_sent_log_viewmodel([], daily_cap=25)
+    job_repo = request.app.state.job_repo
+    sends = await job_repo.get_sends(limit=100) if hasattr(job_repo, "get_sends") else []
+    daily_cap = getattr(request.app.state.mailer, "daily_cap", 25)
+    vm = build_sent_log_viewmodel(sends, daily_cap=daily_cap)
+    csrf_token = generate_csrf_token(auth, get_session_secret())
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="sent.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="sent.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -247,10 +284,27 @@ async def export_sent_csv(
     request: Request,
     auth: str = Depends(require_auth),
 ):
+    job_repo = request.app.state.job_repo
+    sends = await job_repo.get_sends(limit=500) if hasattr(job_repo, "get_sends") else []
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Job ID", "Company", "Title", "Recipient", "Subject", "Status", "Sent At"])
-    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=sent_jobs.csv"})
+    writer.writerow(["Send ID", "Job ID", "Company", "Title", "Recipient", "Subject", "Status", "Sent At"])
+    for s in sends:
+        writer.writerow([
+            s.get("id"),
+            s.get("job_id"),
+            s.get("company"),
+            s.get("title"),
+            s.get("recipient"),
+            s.get("subject"),
+            s.get("status"),
+            s.get("sent_at"),
+        ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=sent_jobs.csv"},
+    )
 
 
 @router.get("/skipped")
@@ -261,8 +315,9 @@ async def skipped_list(
     job_repo = request.app.state.job_repo
     jobs = await job_repo.list_cards(tier=Tier.SKIPPED, limit=200)
     vm = build_skipped_viewmodel(jobs)
+    csrf_token = generate_csrf_token(auth, get_session_secret())
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="skipped.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="skipped.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -273,8 +328,9 @@ async def opportunities(
 ):
     from app.viewmodels.builders import build_opportunities_viewmodel
     vm = build_opportunities_viewmodel([])
+    csrf_token = generate_csrf_token(auth, get_session_secret())
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="opportunities.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="opportunities.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -294,8 +350,9 @@ async def whatsapp_status_page(
         "qr_code": qr,
         "phone": status.get("phone"),
     }, [])
+    csrf_token = generate_csrf_token(auth, get_session_secret())
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="whatsapp.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="whatsapp.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
 
 
@@ -311,10 +368,129 @@ async def settings_page(
         "authenticated": bool(os.getenv("GMAIL_REFRESH_TOKEN_ENC")),
         "email": profile.email,
     }
+
+    # Collect pending TODO fields from profile.seed.yaml
+    todos = []
+    p = Path("profile.seed.yaml")
+    if p.exists():
+        try:
+            for line in p.read_text(encoding="utf-8").splitlines():
+                if "TODO" in line and not line.strip().startswith("#"):
+                    todos.append(line.split("#")[0].strip())
+        except Exception:
+            pass
+
     vm = build_settings_viewmodel(settings, gmail_status, profile)
+    vm["todos"] = todos
+    csrf_token = generate_csrf_token(auth, get_session_secret())
     if should_render_html(request):
-        return templates.TemplateResponse(request=request, name="settings.html", context={"vm": vm})
+        return templates.TemplateResponse(request=request, name="settings.html", context={"vm": vm, "csrf_token": csrf_token})
     return vm
+
+
+# -----------------------------------------------------------------------------
+# Google OAuth Flow & Test Routes
+# -----------------------------------------------------------------------------
+@router.get("/settings/gmail")
+@router.get("/settings/gmail/connect")
+async def connect_gmail(request: Request, auth: str = Depends(require_auth)):
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    if not client_id:
+        return HTMLResponse(
+            "<h3>Google OAuth not configured</h3><p>Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.</p><a href='/settings'>Back to Settings</a>"
+        )
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://apply.fahadbinnasir.tech/oauth/google/callback")
+    scope = "https://www.googleapis.com/auth/gmail.send"
+    state = create_session_token(get_session_secret(), user_id="oauth")
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={client_id}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope={scope}&"
+        f"access_type=offline&"
+        f"prompt=consent&"
+        f"state={state}"
+    )
+    return RedirectResponse(auth_url, status_code=303)
+
+
+@router.get("/oauth/google/callback")
+async def google_oauth_callback(
+    request: Request,
+    code: Optional[str] = None,
+    error: Optional[str] = None,
+    state: Optional[str] = None,
+):
+    if error:
+        return RedirectResponse(f"/settings?oauth_error={error}", status_code=303)
+    if not code:
+        return RedirectResponse("/settings?oauth_error=missing_code", status_code=303)
+
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://apply.fahadbinnasir.tech/oauth/google/callback")
+
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_resp = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
+            if token_resp.status_code != 200:
+                return RedirectResponse(f"/settings?oauth_error=token_exchange_failed", status_code=303)
+
+            data = token_resp.json()
+            refresh_token = data.get("refresh_token")
+            if not refresh_token:
+                return RedirectResponse("/settings?oauth_error=no_refresh_token", status_code=303)
+
+            from app.db.crypto import TokenEncryption
+            crypto = TokenEncryption()
+            enc = crypto.encrypt(refresh_token)
+            os.environ["GMAIL_REFRESH_TOKEN_ENC"] = enc
+            return RedirectResponse("/settings?gmail_connected=1", status_code=303)
+    except Exception as e:
+        return RedirectResponse(f"/settings?oauth_error={str(e)}", status_code=303)
+
+
+@router.post("/api/test/send-self")
+async def send_test_email(request: Request, auth: str = Depends(require_auth)):
+    profile = request.app.state.profile
+    mailer = request.app.state.mailer
+
+    test_pdf = Path("app_data/cvs/test_verification.pdf")
+    test_pdf.parent.mkdir(parents=True, exist_ok=True)
+    if not test_pdf.exists():
+        test_pdf.write_bytes(b"%PDF-1.4 dummy cv content")
+
+    dummy_cv = CVArtifact(id="test_cv", job_id="test", pdf_path=str(test_pdf))
+    test_draft = EmailDraft(
+        id="test_draft",
+        job_id="test",
+        recipient=profile.email,
+        subject="WhatsApp Job Agent - Gmail Integration Test",
+        body=f"Hi {profile.name},\n\nThis test email confirms your Gmail API send capability is working properly on apply.fahadbinnasir.tech!\n\nDispatched safely.",
+    )
+
+    res = await mailer.send_application(
+        job=JobCard(
+            id="job_test",
+            role=ExtractedRole(title="Test", company="Self-Test", field="test", apply_email=profile.email),
+        ),
+        draft=test_draft,
+        cv=dummy_cv,
+    )
+    if not res.success:
+        raise HTTPException(status_code=400, detail=res.error)
+    return {"status": "ok", "message": f"Test email sent to {profile.email}", "id": res.message_id}
 
 
 # -----------------------------------------------------------------------------
@@ -325,6 +501,8 @@ async def intake_webhook(
     request: Request,
     x_webhook_signature: Optional[str] = Header(None),
     x_webhook_timestamp: Optional[str] = Header(None),
+    x_waha_hmac: Optional[str] = Header(None),
+    x_hub_signature_256: Optional[str] = Header(None),
 ):
     raw_body = await request.body()
     try:
@@ -333,9 +511,10 @@ async def intake_webhook(
     except Exception:
         payload = {}
 
+    waha_sig = x_waha_hmac or x_hub_signature_256
     handler: WebhookIntakeHandler = request.app.state.webhook_handler
     ok, msg, item_id = await handler.process_incoming(
-        payload, raw_body, x_webhook_signature, x_webhook_timestamp
+        payload, raw_body, x_webhook_signature, x_webhook_timestamp, waha_hmac=waha_sig
     )
     if not ok:
         raise HTTPException(status_code=403, detail=msg)
@@ -346,6 +525,39 @@ async def intake_webhook(
 # -----------------------------------------------------------------------------
 # Actions API Endpoints
 # -----------------------------------------------------------------------------
+@router.post("/api/jobs/{job_id}/draft")
+async def save_job_draft(
+    job_id: str,
+    request: Request,
+    auth: str = Depends(require_auth),
+):
+    data = await request.json()
+    job_repo = request.app.state.job_repo
+    job = await job_repo.get_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    draft = await job_repo.get_draft(job_id) if hasattr(job_repo, "get_draft") else None
+    if not draft:
+        draft = EmailDraft(
+            id=f"draft_{job_id}",
+            job_id=job_id,
+            recipient=data.get("recipient", job.role.apply_email or ""),
+            subject=data.get("subject", job.role.exact_subject or f"Application for {job.role.title}"),
+            body=data.get("body", ""),
+            is_customized=True,
+        )
+    else:
+        draft.recipient = data.get("recipient", draft.recipient)
+        draft.subject = data.get("subject", draft.subject)
+        draft.body = data.get("body", draft.body)
+        draft.is_customized = True
+
+    if hasattr(job_repo, "save_draft"):
+        await job_repo.save_draft(draft)
+    return {"status": "ok", "draft": draft.model_dump()}
+
+
 @router.post("/api/jobs/{job_id}/approve-send")
 async def approve_and_send(job_id: str, request: Request, auth: str = Depends(require_auth)):
     job_repo = request.app.state.job_repo
@@ -355,15 +567,41 @@ async def approve_and_send(job_id: str, request: Request, auth: str = Depends(re
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    draft = mailer.create_draft(job.role, request.app.state.profile, job.role.exact_subject)
-    cv = CVArtifact(id=f"cv_{job.id}", job_id=job.id, pdf_path=f"app_data/cvs/Fahad_Bin_Nasir_CV_{job.role.company}_{job.role.title}.pdf")
+    draft = await job_repo.get_draft(job.id) if hasattr(job_repo, "get_draft") else None
+    if not draft:
+        draft = mailer.create_draft(job.role, request.app.state.profile, job.role.exact_subject)
+        draft.job_id = job.id
+        if hasattr(job_repo, "save_draft"):
+            await job_repo.save_draft(draft)
+
+    cv = await job_repo.get_cv(job.id) if hasattr(job_repo, "get_cv") else None
+    if not cv or not Path(cv.pdf_path).exists():
+        cv_builder = request.app.state.cv_builder
+        plan = await cv_builder.plan_tailoring(job.role, request.app.state.profile)
+        cv = await cv_builder.build_cv(job.role, request.app.state.profile, plan)
+        cv.job_id = job.id
+        if hasattr(job_repo, "save_cv"):
+            await job_repo.save_cv(cv)
+
+    if not cv or not Path(cv.pdf_path).exists():
+        raise HTTPException(status_code=400, detail="Cannot dispatch application: CV PDF file missing on disk.")
 
     res = await mailer.send_application(job, draft, cv)
     if not res.success:
         raise HTTPException(status_code=400, detail=res.error)
 
+    send_status = "dry_run" if (res.message_id and res.message_id.startswith("dry_run")) else "sent"
+    if hasattr(job_repo, "record_send"):
+        await job_repo.record_send(
+            job_id=job.id,
+            recipient=draft.recipient,
+            subject=draft.subject,
+            status=send_status,
+            gmail_message_id=res.message_id,
+        )
+
     await job_repo.update_status(job.id, Status.SENT.value)
-    return {"status": "sent", "message_id": res.message_id}
+    return {"status": send_status, "message_id": res.message_id}
 
 
 @router.post("/api/jobs/{job_id}/reject")

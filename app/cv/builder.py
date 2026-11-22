@@ -14,7 +14,8 @@ from app.cv.verifier import AntiFabricationVerifier
 from contracts.models import CVArtifact, ExtractedRole, Profile, TailorPlan
 from contracts.protocols import CVBuilder
 
-OUTPUT_DIR = Path("app_data/cvs")
+DATA_DIR = Path(os.getenv("DATA_DIR", "app_data")).resolve()
+OUTPUT_DIR = DATA_DIR / "cvs"
 
 
 def _sanitize_name(s: str) -> str:

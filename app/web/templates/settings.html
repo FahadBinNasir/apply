@@ -10,6 +10,17 @@
   </p>
 </div>
 
+{% if vm.todos %}
+<div style="background:#451a03;border:1px solid #b45309;padding:var(--space-3);border-radius:var(--radius-md);margin-bottom:var(--space-4);font-size:0.85rem;color:#fef3c7;">
+  <b>⚠️ Incomplete Profile Fields:</b> The following fields in <code>profile.seed.yaml</code> contain <code>TODO</code> placeholders and are excluded from applications until filled:
+  <ul style="margin:var(--space-2) 0 0 var(--space-4);padding:0;">
+    {% for todo in vm.todos %}
+    <li><code>{{ todo }}</code></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <div class="split-pane">
   <div>
     <!-- System Controls Card -->
@@ -33,6 +44,22 @@
       <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:var(--space-2);">
         Authorized via Google Cloud OAuth (Scope: <code>gmail.send</code>).
       </p>
+
+      {% if vm.gmail.authenticated %}
+      <div style="font-size:0.85rem;color:#10b981;margin-bottom:var(--space-3);">
+        ✓ Gmail API token configured & active ({{ vm.gmail.email }})
+      </div>
+      <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">
+        <button onclick="sendTestEmail()" class="btn btn-secondary" style="font-size:0.85rem;">
+          Send test email to myself
+        </button>
+      </div>
+      {% else %}
+      <div style="background:#451a03;border:1px solid #b45309;padding:var(--space-2);border-radius:var(--radius-md);margin-bottom:var(--space-3);font-size:0.8rem;color:#fef3c7;">
+        ⚠️ Gmail API token missing or expired. Click Authorize below.
+      </div>
+      {% endif %}
+
       <div style="font-size:0.8rem;background:var(--bg-elevated);padding:var(--space-3);border-radius:var(--radius-md);margin-bottom:var(--space-3);">
         <b>Important Notice:</b> Ensure your Google Cloud OAuth Consent Screen is published or set to "In production" (for personal testing), otherwise user refresh tokens expire after 7 days.
       </div>
@@ -57,4 +84,26 @@
     </div>
   </div>
 </div>
+
+<script>
+async function sendTestEmail() {
+  const btn = event.target;
+  btn.innerText = "Sending test...";
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/test/send-self", { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      alert("Success: " + (data.message || "Test email dispatched."));
+    } else {
+      alert("Failed to send test email: " + (data.detail || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Network error: " + err.message);
+  } finally {
+    btn.innerText = "Send test email to myself";
+    btn.disabled = false;
+  }
+}
+</script>
 {% endblock %}

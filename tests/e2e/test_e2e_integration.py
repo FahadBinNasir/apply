@@ -63,12 +63,14 @@ Send your updated CV to hiring@paysyslabs.com with the subject line "DevOps Engi
     # 3. Approve & Send (Dry Run)
     send_res = client.post(f"/api/jobs/{job_id}/approve-send")
     assert send_res.status_code == 200
-    assert send_res.json()["status"] == "sent"
+    assert send_res.json()["status"] == "dry_run"
     assert "dry_run" in send_res.json()["message_id"]
 
     # 4. Verify Sent Log
     sent_res = client.get("/sent", headers={"accept": "application/json"})
     assert sent_res.status_code == 200
+    assert len(sent_res.json()["sends"]) >= 1
+    assert sent_res.json()["sends"][0]["status"] == "dry_run"
 
 
 def test_e2e_flow_f4_skipped_and_rescue(client):
